@@ -416,6 +416,144 @@
       opacity: 1;
       transform: translateY(0);
     }
+    /* Undo toast variant */
+    .toast--with-undo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: all; /* allow clicking undo */
+    }
+    .toast-undo-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.4);
+      color: inherit;
+      border-radius: 10px;
+      padding: 2px 8px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .toast-undo-btn:hover { background: rgba(255,255,255,0.15); }
+
+    /* ── Reading List ── */
+    .rl-badge {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 10px;
+      font-size: 0.68rem;
+      padding: 1px 6px;
+      margin-left: 4px;
+      vertical-align: middle;
+      line-height: 1.5;
+    }
+    #readingListView { margin-bottom: 24px; }
+    .rl-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .rl-header h2 {
+      font-family: var(--font-serif);
+      font-size: 1.1rem;
+      font-weight: normal;
+      margin: 0;
+    }
+    .rl-count { color: var(--text-muted); font-size: 0.85rem; font-family: var(--font-sans); }
+    .rl-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .rl-sort-select {
+      font-size: 0.8rem;
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }
+    .rl-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow);
+    }
+    .rl-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+    .rl-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      line-height: 1.4;
+      margin: 0;
+      flex: 1;
+    }
+    .rl-title a { color: var(--accent); text-decoration: none; }
+    .rl-title a:hover { text-decoration: underline; }
+    .rl-card-badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    .rl-meta { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; }
+    .rl-abstract {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    .rl-abstract.expanded {
+      display: block;
+      -webkit-line-clamp: unset;
+      overflow: visible;
+    }
+    .rl-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .rl-added-date { font-size: 0.72rem; color: var(--text-muted); }
+    .rl-remove-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.78rem;
+      padding: 0;
+      margin-left: auto;
+    }
+    .rl-remove-btn:hover { color: var(--text); }
+    .rl-empty-state {
+      text-align: center;
+      padding: 60px 0;
+      color: var(--text-muted);
+    }
+    .rl-empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .rl-empty-state p { font-size: 0.9rem; margin-bottom: 8px; }
+    .rl-migration-notice {
+      background: var(--accent-light);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 8px 14px;
+      font-size: 0.8rem;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+    }
 
     /* Keyword chips container */
     .keyword-list {
@@ -1274,6 +1412,10 @@
       <button class="btn-secondary" id="keywordsToggle">⚙ My Topics</button>
       <!-- Feed Insights: system-learned personalisation data -->
       <button class="btn-icon" id="insightsToggle" title="Feed Insights — what the system learned about you" aria-label="Feed Insights">✦</button>
+      <!-- Reading List: papers liked and queued for reading -->
+      <button class="btn-secondary" id="readingListToggle" title="Reading List — papers you've liked">
+        ☰ Reading List <span class="rl-badge" id="readingListBadge" style="display:none"></span>
+      </button>
     </div>
   </header>
 
@@ -1317,6 +1459,9 @@
 
   <!-- ── Toast notification container ── -->
   <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+  <!-- ── Reading List view (swaps in place of the feed) ── -->
+  <div id="readingListView" style="display:none" aria-label="Reading List"></div>
 
   <!-- ── Active keyword tags shown in feed view ── -->
   <div class="active-keywords-bar" id="activeKeywordsBar"></div>
@@ -1451,10 +1596,11 @@ let currentUser = null;
 
 // ── Constants ──────────────────────────────────────────────
 
-const THEME_KEY       = 'researchhub_theme';
-const LAST_FETCH_KEY  = 'researchhub_last_fetch';
-const HEALTH_KEY      = 'researchhub_health';
-const SEEN_PAPERS_KEY = 'researchhub_seen_papers';
+const THEME_KEY         = 'researchhub_theme';
+const LAST_FETCH_KEY    = 'researchhub_last_fetch';
+const HEALTH_KEY        = 'researchhub_health';
+const SEEN_PAPERS_KEY   = 'researchhub_seen_papers';
+const READING_LIST_KEY  = 'researchhub_reading_list'; // { paper, likedAt }[]
 const FETCH_TTL_MS    = 24 * 60 * 60 * 1000;
 const PAGE_SIZE       = 20;
 
@@ -1534,12 +1680,19 @@ let seenPaperIds = new Set();
 // Whether to include hidden papers in the feed
 let showHidden = false;
 
+// Reading List: array of { paper, likedAt (ISO string) }
+// Persisted in localStorage — fully independent from the hide/learning signals.
+let readingList     = [];
+let readingListOpen = false;    // whether the RL view is currently showing
+let rlSortOrder     = 'date-desc'; // 'date-desc'|'score-desc'|'pub-desc'
+
 
 // ── Initialise ─────────────────────────────────────────────
 
 function init() {
   renderAuthUI();
   loadKeywords();
+  loadReadingList(); // load before first render so exclusion filter works
   loadTheme();
   loadSeenPapers();
   bindEvents();
@@ -2100,6 +2253,215 @@ function renderHealthBar(result) {
 }
 
 
+// ── Reading List ──────────────────────────────────────────────
+
+// Load reading list from localStorage.
+function loadReadingList() {
+  try {
+    readingList = JSON.parse(localStorage.getItem(READING_LIST_KEY) || '[]');
+  } catch { readingList = []; }
+  updateReadingListBadge();
+}
+
+// Persist reading list to localStorage and refresh the badge.
+function saveReadingList() {
+  localStorage.setItem(READING_LIST_KEY, JSON.stringify(readingList));
+  updateReadingListBadge();
+}
+
+// Update the count badge on the Reading List header button.
+function updateReadingListBadge() {
+  const badge = document.getElementById('readingListBadge');
+  if (!badge) return;
+  if (readingList.length > 0) {
+    badge.textContent = readingList.length;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// Add a paper to the reading list (called on like). No-ops if already present.
+function addToReadingList(paper) {
+  if (!paper) return;
+  if (readingList.some(e => e.paper.paperId === paper.paperId)) return;
+  readingList.unshift({ paper, likedAt: new Date().toISOString() });
+  saveReadingList();
+}
+
+// Remove a paper from the reading list WITHOUT touching the like signal.
+// The learning algorithm keeps the positive like signal — removal just clears the queue.
+function removeFromReadingList(paperId, silent = false) {
+  readingList = readingList.filter(e => e.paper.paperId !== paperId);
+  saveReadingList();
+  if (readingListOpen) renderReadingList();
+  if (!silent) showToast('Removed from Reading List');
+}
+
+// Show the Reading List view — hides feed elements, renders RL content.
+function openReadingListView() {
+  readingListOpen = true;
+  closeAllPanels();
+  ['activeKeywordsBar','searchBarContainer','filterPanel','feedHeader','statusBar','paperFeed']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  document.getElementById('readingListView').style.display = 'block';
+  renderReadingList();
+}
+
+// Hide the Reading List view and restore the feed.
+function closeReadingListView() {
+  readingListOpen = false;
+  document.getElementById('readingListView').style.display = 'none';
+  ['activeKeywordsBar','searchBarContainer','filterPanel','feedHeader','statusBar','paperFeed']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
+}
+
+// One-time migration: add previously-liked papers (before RL existed) into the reading list.
+// Runs after both userActions and allPapers are available.
+function migrateOldLikesToReadingList() {
+  const migrationKey = 'researchhub_rl_migrated';
+  if (localStorage.getItem(migrationKey)) return;
+
+  let migrated = 0;
+  for (const [paperId, actions] of Object.entries(userActions)) {
+    if (actions.liked && !readingList.some(e => e.paper.paperId === paperId)) {
+      const paper = allPapers.find(p => p.paperId === paperId);
+      if (paper) {
+        readingList.push({ paper, likedAt: new Date().toISOString() });
+        migrated++;
+      }
+    }
+  }
+  if (migrated > 0) {
+    saveReadingList();
+    localStorage.setItem('researchhub_rl_migration_notice', migrated.toString());
+  }
+  localStorage.setItem(migrationKey, '1');
+}
+
+// Build the HTML for one dense Reading List card.
+function buildRlCardHtml(paper, likedAt) {
+  const paperId  = paper.paperId || '';
+  const paperUrl = paper.url ||
+    (paper.externalIds?.DOI
+      ? `https://doi.org/${paper.externalIds.DOI}`
+      : `https://www.semanticscholar.org/paper/${paperId}`);
+  const firstAuthor = paper.authors?.[0]?.name || 'Unknown author';
+  const authorCount = paper.authors?.length || 0;
+  const yearDisplay = paper.publicationDate?.slice(0, 7) || (paper.year ? String(paper.year) : '');
+  const venue       = paper.publicationVenue?.name || '';
+  const metaParts   = [
+    firstAuthor + (authorCount > 1 ? ` +${authorCount - 1}` : ''),
+    yearDisplay,
+    venue,
+  ].filter(Boolean);
+  const scoreClass = paper.score >= 4 ? 'high' : paper.score >= 2 ? 'mid' : '';
+  const oaBadge    = paper.isOpenAccess
+    ? `<span class="oa-badge" title="Open Access">🔓</span>` : '';
+  const addedDate  = new Date(likedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  const abstractSnippet = paper.abstract ? esc(paper.abstract) : '<em style="color:var(--text-muted)">No abstract available.</em>';
+  const isSaved    = !!userActions[paperId]?.saved;
+
+  return `
+    <article class="rl-card" data-paperid="${esc(paperId)}">
+      <div class="rl-card-top">
+        <h2 class="rl-title">
+          <a href="${esc(paperUrl)}" target="_blank" rel="noopener">${esc(paper.title || 'Untitled')}</a>
+        </h2>
+        <div class="rl-card-badges">
+          ${oaBadge}
+          ${isSaved ? '<span title="Also saved" style="font-size:0.85rem">🔖</span>' : ''}
+          <span class="score-badge ${scoreClass}" title="Relevance score when liked">★ ${paper.score}/5</span>
+        </div>
+      </div>
+      <div class="rl-meta">${esc(metaParts.join(' · '))}</div>
+      <p class="rl-abstract" title="Click to expand">${abstractSnippet}</p>
+      <div class="rl-card-actions">
+        <span class="rl-added-date">Added ${esc(addedDate)}</span>
+        <a class="btn-text" href="${esc(paperUrl)}" target="_blank" rel="noopener" style="font-size:0.78rem">Open ↗</a>
+        <button class="rl-remove-btn" data-paperid="${esc(paperId)}" title="Remove from Reading List">Remove ✕</button>
+      </div>
+    </article>`;
+}
+
+// Render the full Reading List view inside #readingListView.
+function renderReadingList() {
+  const view = document.getElementById('readingListView');
+  if (!view) return;
+
+  // Show migration notice if applicable
+  const migrationCount = localStorage.getItem('researchhub_rl_migration_notice');
+  const migrationBanner = migrationCount
+    ? `<div class="rl-migration-notice" id="rlMigrationNotice">
+        📚 We've added ${migrationCount} previously liked paper${migrationCount > 1 ? 's' : ''} to your Reading List.
+        <button class="btn-text" style="margin-left:8px;font-size:0.78rem" onclick="
+          localStorage.removeItem('researchhub_rl_migration_notice');
+          document.getElementById('rlMigrationNotice')?.remove();
+        ">Dismiss</button>
+      </div>`
+    : '';
+
+  if (readingList.length === 0) {
+    view.innerHTML = `
+      ${migrationBanner}
+      <div class="rl-header"><h2>Reading List</h2>
+        <button class="btn-secondary" onclick="closeReadingListView()">← Back to Feed</button>
+      </div>
+      <div class="rl-empty-state">
+        <div class="icon">📚</div>
+        <p>Your reading list is empty.</p>
+        <p style="font-size:0.8rem;margin-top:4px">Like a paper in the feed to add it here.</p>
+      </div>`;
+    return;
+  }
+
+  // Sort the list
+  const sorted = readingList.slice().sort((a, b) => {
+    if (rlSortOrder === 'score-desc') return (b.paper.score || 0) - (a.paper.score || 0);
+    if (rlSortOrder === 'pub-desc') {
+      const da = a.paper.publicationDate || (a.paper.year ? `${a.paper.year}-01-01` : '0000');
+      const db = b.paper.publicationDate || (b.paper.year ? `${b.paper.year}-01-01` : '0000');
+      return db.localeCompare(da);
+    }
+    // default: date-desc — newest added first
+    return new Date(b.likedAt) - new Date(a.likedAt);
+  });
+
+  const cardsHtml = sorted.map(({ paper, likedAt }) => buildRlCardHtml(paper, likedAt)).join('');
+
+  view.innerHTML = `
+    ${migrationBanner}
+    <div class="rl-header">
+      <h2>Reading List <span class="rl-count">(${readingList.length})</span></h2>
+      <div class="rl-controls">
+        <select class="rl-sort-select" id="rlSortSelect">
+          <option value="date-desc"${rlSortOrder === 'date-desc' ? ' selected' : ''}>Date added</option>
+          <option value="score-desc"${rlSortOrder === 'score-desc' ? ' selected' : ''}>Relevance score</option>
+          <option value="pub-desc"${rlSortOrder === 'pub-desc' ? ' selected' : ''}>Publication date</option>
+        </select>
+        <button class="btn-secondary" onclick="closeReadingListView()">← Back to Feed</button>
+      </div>
+    </div>
+    <div id="rlCardList">${cardsHtml}</div>`;
+
+  // Wire sort selector
+  document.getElementById('rlSortSelect')?.addEventListener('change', (e) => {
+    rlSortOrder = e.target.value;
+    renderReadingList();
+  });
+
+  // Wire remove buttons
+  view.querySelectorAll('.rl-remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => removeFromReadingList(btn.dataset.paperid));
+  });
+
+  // Abstract expand on click
+  view.querySelectorAll('.rl-abstract').forEach(el => {
+    el.addEventListener('click', () => el.classList.toggle('expanded'));
+  });
+}
+
+
 // ── Insights dot indicator ────────────────────────────────────
 
 // Toggle the .has-insights class on the ✦ button whenever learnedKeywords changes.
@@ -2125,6 +2487,42 @@ function showToast(message, duration = 2500) {
   setTimeout(() => {
     toast.classList.remove('toast--visible');
     toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+  }, duration);
+}
+
+
+// Animate a paper card out of the feed (slide-left + fade), then fire callback.
+// Reuses the existing .paper-card--fading CSS transition (~380ms).
+function animateCardOut(paperId, callback) {
+  const card = document.querySelector(`[data-paperid="${paperId}"]`);
+  if (!card) { callback?.(); return; }
+  card.classList.add('paper-card--fading');
+  setTimeout(() => callback?.(), 380);
+}
+
+// Like showToast() but with an Undo button. onUndo fires if tapped within duration.
+function showToastWithUndo(message, onUndo, duration = 4000) {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = 'toast toast--with-undo';
+  toast.innerHTML = `<span>${esc(message)}</span><button class="toast-undo-btn">Undo</button>`;
+  container.appendChild(toast);
+
+  let undone = false;
+  toast.querySelector('.toast-undo-btn').addEventListener('click', () => {
+    undone = true;
+    onUndo?.();
+    toast.classList.remove('toast--visible');
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+  });
+
+  requestAnimationFrame(() => toast.classList.add('toast--visible'));
+  setTimeout(() => {
+    if (!undone) {
+      toast.classList.remove('toast--visible');
+      toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+    }
   }, duration);
 }
 
@@ -2160,6 +2558,16 @@ function bindEvents() {
   document.getElementById('insightsToggle').addEventListener('click', () => {
     openPanel('insightsPanel');
     renderInsightsPanel();
+  });
+
+  // Header: Reading List view
+  document.getElementById('readingListToggle').addEventListener('click', () => {
+    if (readingListOpen) {
+      closeReadingListView();
+    } else {
+      closeAllPanels();
+      openReadingListView();
+    }
   });
 
   // Close buttons inside each panel
@@ -2329,6 +2737,9 @@ function applyFiltersAndSort(arr) {
   if (!showHidden) {
     result = result.filter(p => !userActions[p.paperId]?.hidden);
   }
+  // Papers in the reading list are moved there — exclude from main feed
+  // (like signal is preserved; this is purely a UI routing decision)
+  result = result.filter(p => !readingList.some(e => e.paper.paperId === p.paperId));
   result = applySortOrder(result, sortOrder);
   return result;
 }
@@ -2586,6 +2997,9 @@ async function fetchPapers() {
 
     // Score all results using keyword match + signal history + learned keywords
     allPapers = results.map(p => ({ ...p, score: scoreWithSignals(p) }));
+
+    // One-time migration: move previously-liked papers into the reading list
+    migrateOldLikesToReadingList();
 
     // Apply filters and sort to derive the view
     papers    = applyFiltersAndSort(allPapers);
@@ -3086,12 +3500,27 @@ function handlePaperAction(paperId, action) {
     if (newVal && paper) {
       // Positive signal: learn keywords from this paper
       addLearnedKeywords(paper);
-      // Rescore immediately so score badge updates
+      // Rescore so score badge is accurate when stored in RL
       const updated = { ...paper, score: scoreWithSignals(paper) };
       allPapers = allPapers.map(p => p.paperId === paperId ? updated : p);
+
+      // Add to Reading List and animate card out of feed
+      addToReadingList(updated);
+      animateCardOut(paperId, () => applyAndRender());
+
+      // Show undo toast — undo removes from RL + un-likes
+      showToastWithUndo('Added to Reading List', () => {
+        removeFromReadingList(paperId, /* silent */ true);
+        saveUserAction(paperId, 'liked', false);
+        recordSignal(paperId, 'liked', false);
+        allPapers = allPapers.map(p => p.paperId === paperId ? { ...p, score: scoreWithSignals(p) } : p);
+        applyAndRender();
+      });
+    } else if (!newVal) {
+      // Un-liking manually (edge case) — just update the card display
+      updateCardActionDisplay(paperId);
+      if (filterState.status === 'liked') applyAndRender();
     }
-    updateCardActionDisplay(paperId);
-    if (filterState.status === 'liked') applyAndRender();
   } else if (action === 'save') {
     const current = userActions[paperId]?.saved || false;
     const newVal  = !current;
