@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Research Hub — HRI Paper Feed</title>
+  <style>
+    /* ── CSS Custom Properties (theme variables) ── */
+    :root {
+      --bg:           #f5f4f0;
+      --surface:      #ffffff;
+      --border:       #ddd9d0;
+      --text:         #1a1a1a;
+      --text-muted:   #666;
+      --accent:       #2c5f8a;
+      --accent-light: #e8f0f8;
+      --tag-bg:       #eef2f7;
+      --tag-off:      #f0f0f0;
+      --tag-off-text: #999;
+      --score-high:   #2d7a3a;
+      --score-mid:    #8a6d2c;
+      --score-low:    #999;
+      --shadow:       0 1px 3px rgba(0,0,0,0.08);
+      --radius:       6px;
+      --font-serif:   Georgia, 'Times New Roman', serif;
+      --font-sans:    system-ui, -apple-system, sans-serif;
+    }
+
+    /* Dark mode variables */
+    [data-theme="dark"] {
+      --bg:           #1a1a1e;
+      --surface:      #25252b;
+      --border:       #38383f;
+      --text:         #e8e8e8;
+      --text-muted:   #999;
+      --accent:       #6aabda;
+      --accent-light: #1e2d3d;
+      --tag-bg:       #2a3540;
+      --tag-off:      #2a2a2f;
+      --tag-off-text: #666;
+      --score-high:   #5cb86a;
+      --score-mid:    #c9a84c;
+      --score-low:    #666;
+      --shadow:       0 1px 4px rgba(0,0,0,0.3);
+    }
+
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* ── Layout ── */
+    .app-wrapper {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 16px 60px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 0 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .header-title h1 {
+      font-family: var(--font-serif);
+      font-size: 1.5rem;
+      font-weight: normal;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+
+    .header-title p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* ── Buttons ── */
+    button {
+      cursor: pointer;
+      font-family: var(--font-sans);
+      border: none;
+      border-radius: var(--radius);
+      transition: opacity 0.15s, background 0.15s;
+    }
+
+    button:hover { opacity: 0.85; }
+    button:active { opacity: 0.7; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      padding: 7px 14px;
+      font-size: 0.85rem;
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 7px 14px;
+      font-size: 0.85rem;
+    }
+
+    .btn-icon {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 10px;
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    /* Spinning animation for refresh button when loading */
+    .btn-spinning { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Settings Panel ── */
+    .settings-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+      display: none; /* hidden by default, toggled by JS */
+    }
+
+    .settings-panel.open { display: block; }
+
+    .settings-panel h2 {
+      font-family: var(--font-serif);
+      font-size: 1rem;
+      font-weight: normal;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+
+    /* Keyword chips container */
+    .keyword-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+      min-height: 36px;
+    }
+
+    /* Each keyword is a toggle chip */
+    .keyword-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--tag-bg);
+      color: var(--accent);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 10px 4px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    /* Disabled/off chip style */
+    .keyword-chip.off {
+      background: var(--tag-off);
+      color: var(--tag-off-text);
+      border-color: var(--border);
+      text-decoration: line-through;
+    }
+
+    /* The × remove button inside each chip */
+    .keyword-chip .remove-btn {
+      background: none;
+      border: none;
+      color: inherit;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 0 0 0 2px;
+      opacity: 0.5;
+      cursor: pointer;
+    }
+
+    .keyword-chip .remove-btn:hover { opacity: 1; }
+
+    /* Add keyword input row */
+    .add-keyword-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .add-keyword-row input {
+      flex: 1;
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+    }
+
+    .add-keyword-row input:focus { border-color: var(--accent); }
+
+    /* ── Active keyword tags shown below header ── */
+    .active-keywords-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+
+    .active-keywords-bar .bar-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-right: 4px;
+    }
+
+    .active-kw-tag {
+      background: var(--accent-light);
+      color: var(--accent);
+      border-radius: 12px;
+      padding: 2px 10px;
+      font-size: 0.75rem;
+    }
+
+    /* ── Status / error messages ── */
+    .status-bar {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      min-height: 20px;
+    }
+
+    .status-bar.error { color: #c0392b; }
+
+    /* ── Paper Feed ── */
+    .paper-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Individual paper card */
+    .paper-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      box-shadow: var(--shadow);
+      transition: box-shadow 0.15s;
+    }
+
+    .paper-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+
+    .paper-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .paper-title {
+      font-family: var(--font-serif);
+      font-size: 1.05rem;
+      line-height: 1.4;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .paper-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .paper-title a:hover { color: var(--accent); text-decoration: underline; }
+
+    /* Score badge */
+    .score-badge {
+      flex-shrink: 0;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: var(--tag-bg);
+      color: var(--score-low);
+      white-space: nowrap;
+    }
+
+    .score-badge.high { color: var(--score-high); background: #eef6ef; }
+    .score-badge.mid  { color: var(--score-mid);  background: #f6f2ea; }
+
+    [data-theme="dark"] .score-badge.high { background: #1a2e1c; }
+    [data-theme="dark"] .score-badge.mid  { background: #2c2718; }
+
+    .paper-meta {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .paper-abstract {
+      font-size: 0.88rem;
+      color: var(--text);
+      line-height: 1.65;
+      /* Show first ~4 lines, expandable */
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .paper-abstract.expanded {
+      display: block;
+      -webkit-line-clamp: unset;
+    }
+
+    .expand-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 0.78rem;
+      padding: 4px 0;
+      margin-top: 4px;
+      cursor: pointer;
+      display: inline-block;
+    }
+
+    .expand-btn:hover { text-decoration: underline; opacity: 1; }
+
+    /* ── Empty / loading states ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+    /* ── Skeleton loading cards ── */
+    .skeleton-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+    }
+
+    .skeleton-line {
+      background: var(--border);
+      border-radius: 4px;
+      margin-bottom: 10px;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.5; }
+    }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .header-title h1 { font-size: 1.2rem; }
+      .paper-card { padding: 16px; }
+      .paper-title { font-size: 0.95rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+
+  <!-- ── Header ── -->
+  <header>
+    <div class="header-title">
+      <h1>Research Hub</h1>
+      <p>HRI Paper Feed — Semantic Scholar</p>
+    </div>
+    <div class="header-actions">
+      <!-- Refresh button — its inner span spins while loading -->
+      <button class="btn-icon" id="refreshBtn" title="Fetch new papers" aria-label="Refresh papers">
+        <span id="refreshIcon">↻</span>
+      </button>
+      <!-- Dark/light mode toggle -->
+      <button class="btn-icon" id="themeBtn" title="Toggle dark/light mode" aria-label="Toggle theme">🌙</button>
+      <!-- Settings toggle -->
+      <button class="btn-secondary" id="settingsToggle">⚙ Keywords</button>
+    </div>
+  </header>
+
+  <!-- ── Settings Panel (hidden by default) ── -->
+  <section class="settings-panel" id="settingsPanel" aria-label="Keyword settings">
+    <h2>Search Keywords</h2>
+    <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">
+      Click a keyword to toggle it on/off. Active keywords are used to fetch and score papers.
+      The × button removes a keyword entirely.
+    </p>
+
+    <!-- Keyword chips are rendered here by JS -->
+    <div class="keyword-list" id="keywordList"></div>
+
+    <!-- Add new keyword -->
+    <div class="add-keyword-row">
+      <input type="text" id="newKeywordInput" placeholder="Add a keyword…" maxlength="80" aria-label="New keyword" />
+      <button class="btn-primary" id="addKeywordBtn">Add</button>
+    </div>
+  </section>
+
+  <!-- ── Active keyword tags shown in feed view ── -->
+  <div class="active-keywords-bar" id="activeKeywordsBar"></div>
+
+  <!-- ── Status line ── -->
+  <div class="status-bar" id="statusBar"></div>
+
+  <!-- ── Paper feed ── -->
+  <main class="paper-feed" id="paperFeed" aria-live="polite"></main>
+
+  <footer>
+    Data from <a href="https://www.semanticscholar.org/" target="_blank" rel="noopener" style="color:var(--accent)">Semantic Scholar</a>
+    — open and free academic search API.
+  </footer>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  Research Hub — HRI Paper Feed
+//  Single-file vanilla JS app. No frameworks, no build step.
+//  All state lives in memory and persists to localStorage.
+// ════════════════════════════════════════════════════════════
+
+// ── Constants ──────────────────────────────────────────────
+
+const STORAGE_KEY   = 'researchhub_keywords'; // localStorage key
+const THEME_KEY     = 'researchhub_theme';
+// Requests go to our local Python proxy (/api/papers) which forwards them
+// to Semantic Scholar server-side. This avoids corporate SSL inspection
+// blocking direct browser-to-API connections.
+const API_BASE      = '/api/papers';
+const PAPERS_LIMIT  = 30;  // max papers to fetch per search
+
+// Default keywords shown on first visit
+const DEFAULT_KEYWORDS = [
+  { text: 'social robots',          active: true },
+  { text: 'human-robot interaction', active: true },
+  { text: 'emotional contagion',    active: true },
+  { text: 'priming public spaces',  active: true },
+  { text: 'non-humanoid robots',    active: true },
+];
+
+// Fields we want from the API (reduces response size)
+const API_FIELDS = 'title,abstract,authors,year,externalIds,url';
+
+
+// ── App State ──────────────────────────────────────────────
+
+let keywords = [];   // array of { text: string, active: boolean }
+let papers   = [];   // array of paper objects returned from API + our score
+let loading  = false;
+
+
+// ── Initialise ─────────────────────────────────────────────
+
+function init() {
+  loadKeywords();
+  loadTheme();
+  bindEvents();
+  fetchPapers();
+}
+
+
+// ── localStorage helpers ────────────────────────────────────
+
+function loadKeywords() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    keywords = saved ? JSON.parse(saved) : DEFAULT_KEYWORDS;
+  } catch (e) {
+    // If localStorage is corrupted, fall back to defaults
+    keywords = DEFAULT_KEYWORDS;
+  }
+}
+
+function saveKeywords() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(keywords));
+}
+
+function loadTheme() {
+  const saved = localStorage.getItem(THEME_KEY) || 'light';
+  applyTheme(saved);
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeBtn').textContent = theme === 'dark' ? '☀' : '🌙';
+  localStorage.setItem(THEME_KEY, theme);
+}
+
+
+// ── Event binding ───────────────────────────────────────────
+
+function bindEvents() {
+  // Settings panel open/close
+  document.getElementById('settingsToggle').addEventListener('click', () => {
+    document.getElementById('settingsPanel').classList.toggle('open');
+    renderKeywordChips();
+  });
+
+  // Refresh button
+  document.getElementById('refreshBtn').addEventListener('click', fetchPapers);
+
+  // Theme toggle
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  });
+
+  // Add keyword on button click
+  document.getElementById('addKeywordBtn').addEventListener('click', addKeyword);
+
+  // Add keyword on Enter key in input
+  document.getElementById('newKeywordInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addKeyword();
+  });
+}
+
+
+// ── Keyword management ──────────────────────────────────────
+
+function addKeyword() {
+  const input = document.getElementById('newKeywordInput');
+  const text  = input.value.trim().toLowerCase();
+
+  if (!text) return;
+
+  // Don't add duplicates (case-insensitive)
+  if (keywords.some(k => k.text === text)) {
+    input.value = '';
+    return;
+  }
+
+  keywords.push({ text, active: true });
+  saveKeywords();
+  input.value = '';
+  renderKeywordChips();
+  renderActiveKeywordsBar();
+}
+
+function removeKeyword(index) {
+  keywords.splice(index, 1);
+  saveKeywords();
+  renderKeywordChips();
+  renderActiveKeywordsBar();
+}
+
+function toggleKeyword(index) {
+  keywords[index].active = !keywords[index].active;
+  saveKeywords();
+  renderKeywordChips();
+  renderActiveKeywordsBar();
+  // Re-score displayed papers with the updated active keywords
+  // (no new network request needed — just re-render with new scores)
+  if (papers.length > 0) renderPapers();
+}
+
+// Returns only active keywords
+function activeKeywords() {
+  return keywords.filter(k => k.active).map(k => k.text);
+}
+
+
+// ── Relevance scoring ───────────────────────────────────────
+//
+// Score is 1–5 based on how many active keyword phrases appear
+// in the paper's title and abstract (title matches count double).
+// Returns an integer 1–5.
+
+function scorepaper(paper) {
+  const active  = activeKeywords();
+  if (active.length === 0) return 1;
+
+  const title    = (paper.title    || '').toLowerCase();
+  const abstract = (paper.abstract || '').toLowerCase();
+
+  let matches = 0;
+
+  for (const kw of active) {
+    const kwLower = kw.toLowerCase();
+    if (title.includes(kwLower))    matches += 2; // title is more signal
+    if (abstract.includes(kwLower)) matches += 1;
+  }
+
+  // Normalise to 1–5 range
+  // Max possible = active.length * 3 (title + abstract + title double)
+  const max   = active.length * 3;
+  const ratio = matches / max;
+
+  if (ratio === 0)    return 1;
+  if (ratio < 0.1)    return 1;
+  if (ratio < 0.25)   return 2;
+  if (ratio < 0.5)    return 3;
+  if (ratio < 0.75)   return 4;
+  return 5;
+}
+
+
+// ── API fetch ───────────────────────────────────────────────
+//
+// Fetches papers from Semantic Scholar one keyword at a time,
+// with a short delay between requests to avoid rate limiting.
+// Results are merged and deduplicated by paperId, then scored.
+// Docs: https://api.semanticscholar.org/api-docs/
+
+// Fetch a single keyword query. Returns an array of paper objects,
+// or throws if the request fails or is rate-limited.
+async function fetchOneKeyword(keyword) {
+  const params = new URLSearchParams({
+    query:  keyword,
+    fields: API_FIELDS,
+    limit:  10,  // 10 per keyword × up to 5 keywords = up to 50 results
+  });
+
+  const res  = await fetch(`${API_BASE}?${params}`);
+  const data = await res.json();
+
+  // 429 = rate limited, 503 = API down
+  if (res.status === 429 || (data.message && !data.data)) {
+    throw new Error('Rate limited by Semantic Scholar. Wait 30 seconds and click Refresh.');
+  }
+  if (!res.ok) {
+    throw new Error(`Semantic Scholar API error (${res.status}). Try again shortly.`);
+  }
+
+  return data.data || [];
+}
+
+// Small helper: wait ms milliseconds
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchPapers() {
+  if (loading) return;
+
+  const active = activeKeywords();
+
+  if (active.length === 0) {
+    setStatus('No active keywords. Enable at least one keyword in settings.', true);
+    return;
+  }
+
+  loading = true;
+  setStatus(`Fetching papers for ${active.length} keyword${active.length > 1 ? 's' : ''}…`);
+  showSkeletons();
+  setRefreshSpinning(true);
+
+  try {
+    const seen    = new Set();  // track paperIds to avoid duplicates
+    const results = [];
+
+    // Fetch each keyword sequentially with a 500ms gap to stay under rate limits
+    for (let i = 0; i < active.length; i++) {
+      if (i > 0) await wait(500);
+
+      setStatus(`Fetching papers… (${i + 1}/${active.length})`);
+
+      try {
+        const batch = await fetchOneKeyword(active[i]);
+        for (const paper of batch) {
+          if (paper.title && paper.paperId && !seen.has(paper.paperId)) {
+            seen.add(paper.paperId);
+            results.push(paper);
+          }
+        }
+      } catch (kwErr) {
+        // One keyword failed (e.g. rate limit) — skip it and continue with the rest
+        console.warn(`Skipping keyword "${active[i]}" due to error: ${kwErr.message}`);
+      }
+    }
+
+    // Score and sort all collected papers
+    papers = results
+      .map(p => ({ ...p, score: scorepaper(p) }))
+      .sort((a, b) => b.score - a.score);
+
+    if (papers.length === 0) {
+      setStatus('No papers found. The API may be rate-limited — wait 30 seconds and click Refresh.', true);
+    } else {
+      setStatus(`Showing ${papers.length} papers — ${new Date().toLocaleTimeString()}`);
+    }
+    renderPapers();
+
+  } catch (err) {
+    console.error('Fetch error:', err);
+    // "Failed to fetch" here means the local server isn't running
+    const msg = err.message === 'Failed to fetch'
+      ? 'Could not reach local server. Make sure server.py is running.'
+      : err.message;
+    setStatus(msg, true);
+    document.getElementById('paperFeed').innerHTML = '';
+  } finally {
+    loading = false;
+    setRefreshSpinning(false);
+  }
+}
+
+
+// ── Rendering helpers ───────────────────────────────────────
+
+// Escape HTML to prevent XSS when inserting user-supplied or API text
+function esc(str) {
+  return (str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function setStatus(msg, isError = false) {
+  const el = document.getElementById('statusBar');
+  el.textContent = msg;
+  el.className   = 'status-bar' + (isError ? ' error' : '');
+}
+
+function setRefreshSpinning(on) {
+  document.getElementById('refreshIcon').className = on ? 'btn-spinning' : '';
+}
+
+// Show 4 skeleton placeholder cards while loading
+function showSkeletons() {
+  const feed = document.getElementById('paperFeed');
+  feed.innerHTML = Array.from({ length: 4 }, () => `
+    <div class="skeleton-card">
+      <div class="skeleton-line" style="width:70%; height:18px;"></div>
+      <div class="skeleton-line" style="width:40%; height:12px;"></div>
+      <div class="skeleton-line" style="width:100%; height:12px;"></div>
+      <div class="skeleton-line" style="width:95%; height:12px;"></div>
+      <div class="skeleton-line" style="width:80%; height:12px;"></div>
+    </div>
+  `).join('');
+}
+
+
+// ── Render: keyword chips in settings panel ─────────────────
+
+function renderKeywordChips() {
+  const list = document.getElementById('keywordList');
+
+  if (keywords.length === 0) {
+    list.innerHTML = '<span style="color:var(--text-muted);font-size:0.8rem;">No keywords yet.</span>';
+    return;
+  }
+
+  list.innerHTML = keywords.map((kw, i) => `
+    <span class="keyword-chip ${kw.active ? '' : 'off'}"
+          data-index="${i}"
+          role="button"
+          tabindex="0"
+          title="${kw.active ? 'Click to disable' : 'Click to enable'}"
+          aria-pressed="${kw.active}">
+      ${esc(kw.text)}
+      <button class="remove-btn"
+              data-remove="${i}"
+              title="Remove keyword"
+              aria-label="Remove ${esc(kw.text)}">×</button>
+    </span>
+  `).join('');
+
+  // Toggle active/off on chip click (but not on the × button)
+  list.querySelectorAll('.keyword-chip').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      if (e.target.classList.contains('remove-btn')) return;
+      toggleKeyword(parseInt(chip.dataset.index));
+    });
+    // Keyboard accessibility
+    chip.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleKeyword(parseInt(chip.dataset.index));
+      }
+    });
+  });
+
+  // Remove keyword on × click
+  list.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeKeyword(parseInt(btn.dataset.remove));
+    });
+  });
+}
+
+
+// ── Render: active keyword tags below header ────────────────
+
+function renderActiveKeywordsBar() {
+  const bar    = document.getElementById('activeKeywordsBar');
+  const active = activeKeywords();
+
+  if (active.length === 0) {
+    bar.innerHTML = '<span class="bar-label">No active keywords</span>';
+    return;
+  }
+
+  bar.innerHTML =
+    '<span class="bar-label">Searching:</span>' +
+    active.map(k => `<span class="active-kw-tag">${esc(k)}</span>`).join('');
+}
+
+
+// ── Render: paper cards ─────────────────────────────────────
+
+function renderPapers() {
+  const feed = document.getElementById('paperFeed');
+
+  if (papers.length === 0) {
+    feed.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📄</div>
+        No papers found for these keywords. Try adding broader terms.
+      </div>`;
+    return;
+  }
+
+  feed.innerHTML = papers.map((paper, idx) => {
+    // Build a URL: prefer the paper's own URL, fall back to S2 search
+    const paperUrl = paper.url ||
+      (paper.externalIds?.DOI
+        ? `https://doi.org/${paper.externalIds.DOI}`
+        : `https://www.semanticscholar.org/paper/${paper.paperId || ''}`);
+
+    // Format authors: show up to 4, then "et al."
+    const authors = (paper.authors || []).map(a => a.name);
+    const authorStr = authors.length > 4
+      ? authors.slice(0, 4).join(', ') + ' et al.'
+      : authors.join(', ') || 'Unknown authors';
+
+    const year = paper.year || 'Year unknown';
+
+    // Score badge CSS class
+    const scoreClass = paper.score >= 4 ? 'high' : paper.score >= 2 ? 'mid' : '';
+
+    // Abstract: show even if empty
+    const abstract = paper.abstract
+      ? esc(paper.abstract)
+      : '<em style="color:var(--text-muted)">No abstract available.</em>';
+
+    return `
+      <article class="paper-card" data-idx="${idx}">
+        <div class="paper-card-top">
+          <h2 class="paper-title">
+            <a href="${esc(paperUrl)}" target="_blank" rel="noopener">
+              ${esc(paper.title)}
+            </a>
+          </h2>
+          <span class="score-badge ${scoreClass}"
+                title="Relevance score based on keyword matches">
+            ★ ${paper.score}/5
+          </span>
+        </div>
+        <div class="paper-meta">
+          ${esc(authorStr)} &nbsp;·&nbsp; ${esc(String(year))}
+        </div>
+        <p class="paper-abstract" id="abstract-${idx}">${abstract}</p>
+        ${paper.abstract && paper.abstract.length > 300
+          ? `<button class="expand-btn" data-idx="${idx}">Show more</button>`
+          : ''}
+      </article>
+    `;
+  }).join('');
+
+  // Wire up expand/collapse buttons
+  feed.querySelectorAll('.expand-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx      = btn.dataset.idx;
+      const absEl    = document.getElementById(`abstract-${idx}`);
+      const expanded = absEl.classList.toggle('expanded');
+      btn.textContent = expanded ? 'Show less' : 'Show more';
+    });
+  });
+}
+
+
+// ── Start the app ───────────────────────────────────────────
+init();
+renderKeywordChips();
+renderActiveKeywordsBar();
+
+</script>
+</body>
+</html>

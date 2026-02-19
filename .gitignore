@@ -1,0 +1,6 @@
+# Cache & logs — regenerated automatically, no need to track
+paper_cache.json
+server_log.txt
+
+# Claude Code internal settings
+.claude/
