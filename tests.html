@@ -801,6 +801,264 @@ test('Pagination', 'load more does not exceed total paper count', () => {
 });
 
 
+// ════════════════════════════════════════════════════════════
+//  SECTION 12 — Citation velocity helpers
+// ════════════════════════════════════════════════════════════
+
+// Replicated from index.html — update both if logic changes
+function citationVelocityTest(paper) {
+  const count   = paper.citationCount || 0;
+  const pubYear = paper.publicationDate
+    ? new Date(paper.publicationDate).getFullYear()
+    : (paper.year || null);
+  if (!pubYear) return 0;
+  const yearsOld = Math.max(1, new Date().getFullYear() - pubYear + 1);
+  return count / yearsOld;
+}
+
+function velocityLabelTest(paper) {
+  const v = citationVelocityTest(paper);
+  if (v >= 20) return 'trending';
+  if (v >= 5)  return 'growing';
+  return 'stable';
+}
+
+const currentYear = new Date().getFullYear();
+
+test('Citation Velocity', 'paper with 100 citations in current year is trending', () => {
+  const p = { citationCount: 100, year: currentYear };
+  // yearsOld = max(1, currentYear - currentYear + 1) = 1 → 100/1 = 100 ≥ 20
+  assertEqual(velocityLabelTest(p), 'trending', 'current-year paper with 100 citations = trending');
+});
+
+test('Citation Velocity', 'old paper with low citation rate is stable', () => {
+  // 30 citations over 10+ years = ~2.7/yr < 5
+  const p = { citationCount: 30, year: currentYear - 10 };
+  assertEqual(velocityLabelTest(p), 'stable', '30 cites over 10+ years = stable');
+});
+
+test('Citation Velocity', 'paper with 0 citations is stable', () => {
+  const p = { citationCount: 0, year: 2020 };
+  assertEqual(velocityLabelTest(p), 'stable', '0 citations = stable');
+});
+
+test('Citation Velocity', 'paper with no year returns 0 velocity', () => {
+  const p = { citationCount: 500 }; // no year, no publicationDate
+  assertEqual(citationVelocityTest(p), 0, 'missing year = 0 velocity');
+});
+
+test('Citation Velocity', 'paper in growing range', () => {
+  // 50 citations, published 5 years ago → 50/6 ≈ 8.3/yr → growing
+  const p = { citationCount: 50, year: currentYear - 5 };
+  assertEqual(velocityLabelTest(p), 'growing', '~8/yr = growing');
+});
+
+test('Citation Velocity', 'publicationDate takes precedence over year', () => {
+  // citationCount=25, published exactly currentYear → velocity = 25/1 = 25 ≥ 20 → trending
+  const today = new Date().toISOString().slice(0, 10);
+  const p = { citationCount: 25, year: 2000, publicationDate: today };
+  assertEqual(velocityLabelTest(p), 'trending', 'publicationDate wins over year field');
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 13 — New filter functions
+// ════════════════════════════════════════════════════════════
+
+function applyInflCitationFilter(arr, min) {
+  if (!min || min === 0) return arr;
+  return arr.filter(p => (p.influentialCitationCount || 0) >= min);
+}
+
+function applyVelocityFilter(arr, v) {
+  if (!v || v === 'any') return arr;
+  return arr.filter(p => velocityLabelTest(p) === v);
+}
+
+function applyOpenAccessFilter(arr, oa) {
+  if (!oa) return arr;
+  return arr.filter(p => !!p.isOpenAccess);
+}
+
+function applyPubTypeFilter(arr, type) {
+  if (!type || type === 'all') return arr;
+  return arr.filter(p => {
+    const venueType = (p.publicationVenue?.type || '').toLowerCase();
+    if (type === 'journal')    return venueType.includes('journal');
+    if (type === 'conference') return venueType.includes('conference') || venueType.includes('workshop');
+    if (type === 'preprint')   return venueType.includes('preprint') || venueType.includes('arxiv') ||
+                                      (p.externalIds?.ArXiv && !venueType);
+    return true;
+  });
+}
+
+function applyFieldsFilter(arr, fields) {
+  if (!fields || fields.length === 0) return arr;
+  const fLower = fields.map(f => f.toLowerCase());
+  return arr.filter(p =>
+    (p.fieldsOfStudy || []).some(f => fLower.includes(f.toLowerCase()))
+  );
+}
+
+const newFilterPapers = [
+  {
+    paperId: 'n1',
+    citationCount: 200, influentialCitationCount: 20,
+    year: currentYear - 2, isOpenAccess: true,
+    publicationVenue: { type: 'journal', name: 'Nature' },
+    fieldsOfStudy: ['Computer Science', 'Psychology'],
+  },
+  {
+    paperId: 'n2',
+    citationCount: 5, influentialCitationCount: 2,
+    year: 2015, isOpenAccess: false,
+    publicationVenue: { type: 'conference', name: 'HRI 2015' },
+    fieldsOfStudy: ['Robotics'],
+  },
+  {
+    paperId: 'n3',
+    citationCount: 0, influentialCitationCount: 0,
+    year: currentYear, isOpenAccess: false,
+    publicationVenue: null,
+    externalIds: { ArXiv: '2301.12345' },
+    fieldsOfStudy: ['Psychology'],
+  },
+];
+
+test('New Filters', 'applyInflCitationFilter min=0 returns all', () => {
+  assertLength(applyInflCitationFilter(newFilterPapers, 0), 3, 'min=0 = all');
+});
+
+test('New Filters', 'applyInflCitationFilter min=10 filters correctly', () => {
+  const res = applyInflCitationFilter(newFilterPapers, 10);
+  assertLength(res, 1, 'only n1 has ≥10 influential citations');
+  assertEqual(res[0].paperId, 'n1', 'correct paper');
+});
+
+test('New Filters', 'applyVelocityFilter any returns all', () => {
+  assertLength(applyVelocityFilter(newFilterPapers, 'any'), 3, 'any = all');
+});
+
+test('New Filters', 'applyVelocityFilter trending returns only trending papers', () => {
+  // n1: 200 cites / 3 yrs ≈ 67/yr → trending
+  // n3: 0 cites → stable
+  const res = applyVelocityFilter(newFilterPapers, 'trending');
+  assert(res.some(p => p.paperId === 'n1'), 'n1 is trending');
+  assert(!res.some(p => p.paperId === 'n2'), 'n2 is not trending');
+});
+
+test('New Filters', 'applyOpenAccessFilter false returns all', () => {
+  assertLength(applyOpenAccessFilter(newFilterPapers, false), 3, 'false = all');
+});
+
+test('New Filters', 'applyOpenAccessFilter true returns only OA papers', () => {
+  const res = applyOpenAccessFilter(newFilterPapers, true);
+  assertLength(res, 1, 'one OA paper');
+  assertEqual(res[0].paperId, 'n1', 'n1 is OA');
+});
+
+test('New Filters', 'applyPubTypeFilter all returns all', () => {
+  assertLength(applyPubTypeFilter(newFilterPapers, 'all'), 3, 'all = all');
+});
+
+test('New Filters', 'applyPubTypeFilter journal returns only journal papers', () => {
+  const res = applyPubTypeFilter(newFilterPapers, 'journal');
+  assertLength(res, 1, 'one journal paper');
+  assertEqual(res[0].paperId, 'n1', 'n1 is a journal paper');
+});
+
+test('New Filters', 'applyPubTypeFilter conference returns only conference papers', () => {
+  const res = applyPubTypeFilter(newFilterPapers, 'conference');
+  assertLength(res, 1, 'one conference paper');
+  assertEqual(res[0].paperId, 'n2', 'n2 is a conference paper');
+});
+
+test('New Filters', 'applyFieldsFilter empty returns all', () => {
+  assertLength(applyFieldsFilter(newFilterPapers, []), 3, 'empty fields = all');
+});
+
+test('New Filters', 'applyFieldsFilter Computer Science returns matching papers', () => {
+  const res = applyFieldsFilter(newFilterPapers, ['Computer Science']);
+  assertLength(res, 1, 'one CS paper');
+  assertEqual(res[0].paperId, 'n1', 'n1 has Computer Science field');
+});
+
+test('New Filters', 'applyFieldsFilter multi-field returns union', () => {
+  // Robotics OR Psychology → n2 and n3 (both have Psychology or Robotics)
+  const res = applyFieldsFilter(newFilterPapers, ['Robotics', 'Psychology']);
+  assert(res.length >= 2, 'at least 2 papers match Robotics or Psychology');
+});
+
+test('New Filters', 'applyFieldsFilter is case-insensitive', () => {
+  const res = applyFieldsFilter(newFilterPapers, ['computer science']);
+  assertLength(res, 1, 'case-insensitive match works');
+  assertEqual(res[0].paperId, 'n1', 'correct paper');
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 14 — New sort options (influential, trending)
+// ════════════════════════════════════════════════════════════
+
+// Extends the existing applySortOrder test helper
+function applySortOrderFull(arr, order) {
+  const a = arr.slice();
+  if (order === 'newest') {
+    return a.sort((x, y) => {
+      const dx = x.publicationDate || (x.year ? `${x.year}-12-31` : '0000-01-01');
+      const dy = y.publicationDate || (y.year ? `${y.year}-12-31` : '0000-01-01');
+      return dy.localeCompare(dx);
+    });
+  }
+  if (order === 'oldest') {
+    return a.sort((x, y) => {
+      const dx = x.publicationDate || (x.year ? `${x.year}-01-01` : '9999-12-31');
+      const dy = y.publicationDate || (y.year ? `${y.year}-01-01` : '9999-12-31');
+      return dx.localeCompare(dy);
+    });
+  }
+  if (order === 'relevance') return a.sort((x, y) => y.score - x.score);
+  if (order === 'cited')     return a.sort((x, y) => (y.citationCount || 0) - (x.citationCount || 0));
+  if (order === 'influential') return a.sort((x, y) => (y.influentialCitationCount || 0) - (x.influentialCitationCount || 0));
+  if (order === 'trending')  return a.sort((x, y) => citationVelocityTest(y) - citationVelocityTest(x));
+  return a;
+}
+
+const sortablePapersFull = [
+  { paperId: 'f1', score: 5, year: 2023, publicationDate: '2023-06-01', citationCount: 50,  influentialCitationCount: 20 },
+  { paperId: 'f2', score: 3, year: 2021, publicationDate: '2021-03-15', citationCount: 200, influentialCitationCount: 5  },
+  { paperId: 'f3', score: 1, year: currentYear, publicationDate: `${currentYear}-01-01`, citationCount: 80,  influentialCitationCount: 30 },
+];
+
+test('New Sort Options', 'influential sort puts highest influentialCitationCount first', () => {
+  const res = applySortOrderFull(sortablePapersFull, 'influential');
+  assertEqual(res[0].paperId, 'f3', 'f3 has most influential citations (30)');
+  assertEqual(res[2].paperId, 'f2', 'f2 has fewest influential citations (5)');
+});
+
+test('New Sort Options', 'trending sort puts highest citation velocity first', () => {
+  // f3: 80 cites in 1 year = 80/yr
+  // f1: 50 cites in ~3 years ≈ 17/yr
+  // f2: 200 cites in ~5 years ≈ 40/yr
+  const res = applySortOrderFull(sortablePapersFull, 'trending');
+  assertEqual(res[0].paperId, 'f3', 'f3 has highest velocity (80+/yr)');
+});
+
+test('New Sort Options', 'sort does not mutate input array', () => {
+  const original = [...sortablePapersFull];
+  applySortOrderFull(sortablePapersFull, 'influential');
+  for (let i = 0; i < original.length; i++) {
+    assertEqual(sortablePapersFull[i].paperId, original[i].paperId, `input[${i}] unchanged`);
+  }
+});
+
+test('New Sort Options', 'existing cited sort still works after adding new sorts', () => {
+  const res = applySortOrderFull(sortablePapersFull, 'cited');
+  assertEqual(res[0].paperId, 'f2', 'f2 has most total citations (200)');
+  assertEqual(res[2].paperId, 'f1', 'f1 has fewest total citations (50)');
+});
+
+
 // ── Wire up the run button ───────────────────────────────────
 document.getElementById('runBtn').addEventListener('click', runAll);
 

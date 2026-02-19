@@ -700,10 +700,100 @@
       align-items: center;
     }
 
-    /* Citation count in meta row */
+    /* Citation count in meta row (legacy — kept for backward compat) */
     .citation-count {
       margin-left: 4px;
       color: var(--text-muted);
+    }
+
+    /* ── Author link + count ── */
+    .author-link {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    .author-link:hover { color: var(--accent); text-decoration: underline; }
+    .author-count { font-size: 0.72rem; color: var(--text-muted); }
+
+    /* ── Open Access badge + PDF link ── */
+    .oa-badge { font-size: 0.82rem; vertical-align: middle; }
+    .oa-badge.locked { opacity: 0.45; }
+    .pdf-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.75rem;
+      margin-left: 2px;
+    }
+    .pdf-link:hover { text-decoration: underline; }
+
+    /* ── Rich metrics row ── */
+    .paper-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+      margin: 8px 0 4px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      align-items: center;
+    }
+
+    .metric { display: inline-flex; align-items: center; gap: 3px; }
+
+    /* Citation count colour tiers */
+    .cite-grey  { color: var(--text-muted); }
+    .cite-blue  { color: #4a90d9; font-weight: 500; }
+    .cite-green { color: var(--score-high); font-weight: 500; }
+    .cite-gold  { color: #c9930a; font-weight: 700; }
+
+    [data-theme="dark"] .cite-blue  { color: #6aabda; }
+    [data-theme="dark"] .cite-gold  { color: #e0a800; }
+
+    /* Citation velocity */
+    .velocity-trending { color: #cc3344; font-weight: 600; }
+    .velocity-growing  { color: var(--score-high); font-weight: 500; }
+    .velocity-stable   { color: var(--text-muted); }
+
+    /* Highly influential badge */
+    .highly-influential-badge {
+      background: #fff3cd;
+      color: #7d5a00;
+      border-radius: 10px;
+      padding: 1px 8px;
+      font-weight: 600;
+      font-size: 0.72rem;
+    }
+    [data-theme="dark"] .highly-influential-badge { background: #2d2300; color: #e0a800; }
+
+    /* Venue name — italic, truncated */
+    .venue-name {
+      font-style: italic;
+      color: var(--text-muted);
+      max-width: 240px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    /* Fields of study tags */
+    .field-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin: 4px 0 6px;
+    }
+    .field-tag {
+      background: var(--tag-off);
+      color: var(--tag-off-text);
+      border-radius: 10px;
+      padding: 1px 8px;
+      font-size: 0.70rem;
+    }
+
+    /* On mobile, hide venue + field tags to save space */
+    @media (max-width: 600px) {
+      .venue-name { display: none; }
+      .field-tags { display: none; }
     }
 
     .paper-abstract {
@@ -953,6 +1043,8 @@
           <option value="oldest">Oldest first</option>
           <option value="relevance">Highest relevance</option>
           <option value="cited">Most cited</option>
+          <option value="influential">Most influential citations</option>
+          <option value="trending">Trending (citation velocity)</option>
         </select>
       </div>
       <div class="filter-group">
@@ -974,6 +1066,26 @@
       <div class="filter-group">
         <span class="filter-group-label">Citations</span>
         <div id="citationFilterGroup" class="filter-radio-row"></div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-group-label">Influential</span>
+        <div id="inflCitationFilterGroup" class="filter-radio-row"></div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-group-label">Velocity</span>
+        <div id="velocityFilterGroup" class="filter-radio-row"></div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-group-label">Access</span>
+        <div id="openAccessFilterGroup" class="filter-check-row"></div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-group-label">Type</span>
+        <div id="pubTypeFilterGroup" class="filter-radio-row"></div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-group-label">Field</span>
+        <div id="fieldsFilterGroup" class="filter-check-row"></div>
       </div>
     </div>
   </div>
@@ -1052,9 +1164,11 @@ const DEFAULT_KEYWORDS = [
   { text: 'non-humanoid robots',    active: true },
 ];
 
-// Fields we request from Semantic Scholar — includes citationCount and publicationDate
-// so we can filter by citations and date ranges.
-const API_FIELDS = 'title,abstract,authors,year,publicationDate,externalIds,url,citationCount';
+// Fields we request from Semantic Scholar.
+// All fields are returned in a single API response — no extra calls needed.
+const API_FIELDS = 'title,abstract,authors,year,publicationDate,externalIds,url,' +
+  'citationCount,influentialCitationCount,referenceCount,' +
+  'isOpenAccess,openAccessPdf,publicationVenue,fieldsOfStudy';
 
 
 // ── App State ──────────────────────────────────────────────
@@ -1068,14 +1182,19 @@ let searchQuery = '';       // current live search string
 let searchTimer = null;     // debounce handle
 
 let filterState = {
-  scores:    [1, 2, 3, 4, 5],  // active score checkboxes
-  dateRange: 'all',             // 'all'|'7d'|'30d'|'90d'|'1y'
-  status:    'all',             // 'all'|'unread'|'liked'|'saved'|'hidden'
-  keywords:  [],                // [] = no keyword filter; strings = must match one
-  citations: 0,                 // minimum citation count: 0|10|50|100|500
+  scores:        [1, 2, 3, 4, 5],  // active score checkboxes
+  dateRange:     'all',             // 'all'|'7d'|'30d'|'90d'|'1y'
+  status:        'all',             // 'all'|'unread'|'liked'|'saved'|'hidden'
+  keywords:      [],                // [] = no keyword filter; strings = must match one
+  citations:     0,                 // minimum total citation count: 0|10|50|100|500
+  inflCitations: 0,                 // minimum influential citations: 0|5|10|25
+  velocity:      'any',             // 'any'|'trending'|'growing'|'stable'
+  openAccess:    false,             // true = open-access papers only
+  pubType:       'all',             // 'all'|'journal'|'conference'|'preprint'
+  fields:        [],                // [] = all fields; strings = must match at least one
 };
 
-let sortOrder  = 'newest';  // 'newest'|'oldest'|'relevance'|'cited'
+let sortOrder  = 'newest';  // 'newest'|'oldest'|'relevance'|'cited'|'influential'|'trending'
 let pageIndex  = 0;
 
 // Cache of { [paperId]: { liked, saved, hidden } } loaded from Firestore
@@ -1522,6 +1641,11 @@ function applyFiltersAndSort(arr) {
   result = applyStatusFilter(result, filterState.status, userActions);
   result = applyKeywordFilter(result, filterState.keywords);
   result = applyCitationFilter(result, filterState.citations);
+  result = applyInflCitationFilter(result, filterState.inflCitations);
+  result = applyVelocityFilter(result, filterState.velocity);
+  result = applyOpenAccessFilter(result, filterState.openAccess);
+  result = applyPubTypeFilter(result, filterState.pubType);
+  result = applyFieldsFilter(result, filterState.fields);
   // Unless "show hidden" is on, remove hidden papers from the default view
   if (!showHidden) {
     result = result.filter(p => !userActions[p.paperId]?.hidden);
@@ -1603,6 +1727,73 @@ function applyCitationFilter(arr, min) {
   return arr.filter(p => (p.citationCount || 0) >= min);
 }
 
+// ── Citation velocity helpers ─────────────────────────────────
+// Returns citations per year since publication. Papers published this year
+// get a minimum age of 1 to avoid division-by-zero / inflation.
+function citationVelocity(paper) {
+  const count   = paper.citationCount || 0;
+  const pubYear = paper.publicationDate
+    ? new Date(paper.publicationDate).getFullYear()
+    : (paper.year || null);
+  if (!pubYear) return 0;
+  const yearsOld = Math.max(1, new Date().getFullYear() - pubYear + 1);
+  return count / yearsOld;
+}
+
+// Returns 'trending' (≥20/yr) | 'growing' (5-20/yr) | 'stable' (<5/yr)
+function velocityLabel(paper) {
+  const v = citationVelocity(paper);
+  if (v >= 20) return 'trending';
+  if (v >= 5)  return 'growing';
+  return 'stable';
+}
+
+// ── New filter functions ──────────────────────────────────────
+
+// Keep papers where influentialCitationCount >= min.
+function applyInflCitationFilter(arr, min) {
+  if (!min || min === 0) return arr;
+  return arr.filter(p => (p.influentialCitationCount || 0) >= min);
+}
+
+// Keep papers whose citation velocity matches the given label.
+// 'any' returns all papers unchanged.
+function applyVelocityFilter(arr, v) {
+  if (!v || v === 'any') return arr;
+  return arr.filter(p => velocityLabel(p) === v);
+}
+
+// Keep open-access papers only (when oa === true).
+function applyOpenAccessFilter(arr, oa) {
+  if (!oa) return arr;
+  return arr.filter(p => !!p.isOpenAccess);
+}
+
+// Keep papers matching the publication type.
+// Uses publicationVenue.type from Semantic Scholar; falls back to ArXiv
+// external ID for preprints that have no venue set.
+function applyPubTypeFilter(arr, type) {
+  if (!type || type === 'all') return arr;
+  return arr.filter(p => {
+    const venueType = (p.publicationVenue?.type || '').toLowerCase();
+    if (type === 'journal')    return venueType.includes('journal');
+    if (type === 'conference') return venueType.includes('conference') || venueType.includes('workshop');
+    if (type === 'preprint')   return venueType.includes('preprint') || venueType.includes('arxiv') ||
+                                      (p.externalIds?.ArXiv && !venueType);
+    return true;
+  });
+}
+
+// Keep papers that have at least one fieldsOfStudy value matching the
+// selected fields array. [] = no filter (return all).
+function applyFieldsFilter(arr, fields) {
+  if (!fields || fields.length === 0) return arr;
+  const fLower = fields.map(f => f.toLowerCase());
+  return arr.filter(p =>
+    (p.fieldsOfStudy || []).some(f => fLower.includes(f.toLowerCase()))
+  );
+}
+
 // Sort a copy of the array by the given order. Does NOT mutate input.
 function applySortOrder(arr, order) {
   const a = arr.slice();
@@ -1625,6 +1816,12 @@ function applySortOrder(arr, order) {
   }
   if (order === 'cited') {
     return a.sort((x, y) => (y.citationCount || 0) - (x.citationCount || 0));
+  }
+  if (order === 'influential') {
+    return a.sort((x, y) => (y.influentialCitationCount || 0) - (x.influentialCitationCount || 0));
+  }
+  if (order === 'trending') {
+    return a.sort((x, y) => citationVelocity(y) - citationVelocity(x));
   }
   return a;
 }
@@ -1789,6 +1986,11 @@ function renderFilterPanel() {
   renderStatusFilterGroup();
   renderKeywordFilterGroup();
   renderCitationFilterGroup();
+  renderInflCitationFilterGroup();
+  renderVelocityFilterGroup();
+  renderOpenAccessFilterGroup();
+  renderPubTypeFilterGroup();
+  renderFieldsFilterGroup();
   renderActiveFilterTags();
 }
 
@@ -1927,6 +2129,138 @@ function renderCitationFilterGroup() {
   });
 }
 
+function renderInflCitationFilterGroup() {
+  const el = document.getElementById('inflCitationFilterGroup');
+  if (!el) return;
+  const options = [
+    { val: 0,  label: 'Any' },
+    { val: 5,  label: '≥5' },
+    { val: 10, label: '≥10' },
+    { val: 25, label: '≥25' },
+  ];
+  el.innerHTML = options.map(o => `
+    <label class="filter-option-label">
+      <input type="radio" name="inflCitationFilter" value="${o.val}"
+             ${filterState.inflCitations === o.val ? 'checked' : ''}
+             data-filter="inflCitation">
+      ${o.label}
+    </label>
+  `).join('');
+  el.querySelectorAll('input[data-filter="inflCitation"]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      filterState.inflCitations = Number(inp.value);
+      renderActiveFilterTags();
+      applyAndRender();
+    });
+  });
+}
+
+function renderVelocityFilterGroup() {
+  const el = document.getElementById('velocityFilterGroup');
+  if (!el) return;
+  const options = [
+    { val: 'any',      label: 'Any' },
+    { val: 'trending', label: '🔥 Trending (≥20/yr)' },
+    { val: 'growing',  label: '↗ Growing (5–20/yr)' },
+    { val: 'stable',   label: '→ Stable (<5/yr)' },
+  ];
+  el.innerHTML = options.map(o => `
+    <label class="filter-option-label">
+      <input type="radio" name="velocityFilter" value="${o.val}"
+             ${filterState.velocity === o.val ? 'checked' : ''}
+             data-filter="velocity">
+      ${o.label}
+    </label>
+  `).join('');
+  el.querySelectorAll('input[data-filter="velocity"]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      filterState.velocity = inp.value;
+      renderActiveFilterTags();
+      applyAndRender();
+    });
+  });
+}
+
+function renderOpenAccessFilterGroup() {
+  const el = document.getElementById('openAccessFilterGroup');
+  if (!el) return;
+  el.innerHTML = `
+    <label class="filter-option-label">
+      <input type="checkbox" data-filter="openAccess"
+             ${filterState.openAccess ? 'checked' : ''}>
+      🔓 Open Access only
+    </label>`;
+  el.querySelector('input[data-filter="openAccess"]').addEventListener('change', (e) => {
+    filterState.openAccess = e.target.checked;
+    renderActiveFilterTags();
+    applyAndRender();
+  });
+}
+
+function renderPubTypeFilterGroup() {
+  const el = document.getElementById('pubTypeFilterGroup');
+  if (!el) return;
+  const options = [
+    { val: 'all',        label: 'All' },
+    { val: 'journal',    label: 'Journal' },
+    { val: 'conference', label: 'Conference' },
+    { val: 'preprint',   label: 'Preprint' },
+  ];
+  el.innerHTML = options.map(o => `
+    <label class="filter-option-label">
+      <input type="radio" name="pubTypeFilter" value="${o.val}"
+             ${filterState.pubType === o.val ? 'checked' : ''}
+             data-filter="pubType">
+      ${o.label}
+    </label>
+  `).join('');
+  el.querySelectorAll('input[data-filter="pubType"]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      filterState.pubType = inp.value;
+      renderActiveFilterTags();
+      applyAndRender();
+    });
+  });
+}
+
+// Renders checkboxes for all unique fields of study present in allPapers.
+function renderFieldsFilterGroup() {
+  const el = document.getElementById('fieldsFilterGroup');
+  if (!el) return;
+
+  // Collect unique fields from current allPapers, sorted alphabetically (max 15)
+  const fieldSet = new Set();
+  allPapers.forEach(p => (p.fieldsOfStudy || []).forEach(f => fieldSet.add(f)));
+  const allFields = [...fieldSet].sort().slice(0, 15);
+
+  if (allFields.length === 0) {
+    el.innerHTML = '<span style="color:var(--text-muted);font-size:0.78rem">No papers loaded yet</span>';
+    return;
+  }
+
+  el.innerHTML = allFields.map(f => `
+    <label class="filter-option-label">
+      <input type="checkbox" data-filter="field" value="${esc(f)}"
+             ${filterState.fields.includes(f) ? 'checked' : ''}>
+      ${esc(f)}
+    </label>
+  `).join('');
+
+  el.querySelectorAll('input[data-filter="field"]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      if (inp.checked) {
+        if (!filterState.fields.includes(inp.value)) {
+          filterState.fields = [...filterState.fields, inp.value];
+        }
+      } else {
+        filterState.fields = filterState.fields.filter(f => f !== inp.value);
+      }
+      renderActiveFilterTags();
+      applyAndRender();
+    });
+  });
+}
+
 // Build the active filter tag data: each non-default filter gets a pill.
 function buildActiveFilterTags() {
   const tags = [];
@@ -1963,6 +2297,34 @@ function buildActiveFilterTags() {
       filterState.citations = 0; renderFilterPanel(); applyAndRender();
     }});
   }
+  if (filterState.inflCitations > 0) {
+    tags.push({ label: `Influential ≥${filterState.inflCitations}`, clearFn: () => {
+      filterState.inflCitations = 0; renderFilterPanel(); applyAndRender();
+    }});
+  }
+  if (filterState.velocity !== 'any') {
+    const velLabels = { trending: '🔥 Trending', growing: '↗ Growing', stable: '→ Stable' };
+    tags.push({ label: `Velocity: ${velLabels[filterState.velocity] || filterState.velocity}`, clearFn: () => {
+      filterState.velocity = 'any'; renderFilterPanel(); applyAndRender();
+    }});
+  }
+  if (filterState.openAccess) {
+    tags.push({ label: '🔓 Open Access only', clearFn: () => {
+      filterState.openAccess = false; renderFilterPanel(); applyAndRender();
+    }});
+  }
+  if (filterState.pubType !== 'all') {
+    const typeLabels = { journal: 'Journal', conference: 'Conference', preprint: 'Preprint' };
+    tags.push({ label: `Type: ${typeLabels[filterState.pubType] || filterState.pubType}`, clearFn: () => {
+      filterState.pubType = 'all'; renderFilterPanel(); applyAndRender();
+    }});
+  }
+  filterState.fields.forEach(f => {
+    tags.push({ label: `Field: ${f}`, clearFn: () => {
+      filterState.fields = filterState.fields.filter(x => x !== f);
+      renderFilterPanel(); applyAndRender();
+    }});
+  });
   return tags;
 }
 
@@ -2003,7 +2365,18 @@ function renderActiveFilterTags() {
 
 // Reset all filters and search to defaults.
 function clearAllFilters() {
-  filterState = { scores: [1,2,3,4,5], dateRange: 'all', status: 'all', keywords: [], citations: 0 };
+  filterState = {
+    scores:        [1, 2, 3, 4, 5],
+    dateRange:     'all',
+    status:        'all',
+    keywords:      [],
+    citations:     0,
+    inflCitations: 0,
+    velocity:      'any',
+    openAccess:    false,
+    pubType:       'all',
+    fields:        [],
+  };
   searchQuery = '';
   sortOrder   = 'newest';
   pageIndex   = 0;
@@ -2149,46 +2522,111 @@ function buildPaperCardHtml(paper) {
       ? `https://doi.org/${paper.externalIds.DOI}`
       : `https://www.semanticscholar.org/paper/${paperId}`);
 
-  const authors = (paper.authors || []).map(a => a.name);
-  const authorStr = authors.length > 4
-    ? authors.slice(0, 4).join(', ') + ' et al.'
-    : authors.join(', ') || 'Unknown authors';
+  // ── Authors ─────────────────────────────────────────────────
+  const authorsList   = paper.authors || [];
+  const firstAuthor   = authorsList[0]?.name || 'Unknown author';
+  const firstAuthorId = authorsList[0]?.authorId || '';
+  const authorCount   = authorsList.length;
+  const authorProfileUrl = firstAuthorId
+    ? `https://www.semanticscholar.org/author/${firstAuthorId}`
+    : `https://www.semanticscholar.org/search?q=${encodeURIComponent(firstAuthor)}&sort=Relevance`;
 
-  const year = paper.publicationDate
-    ? paper.publicationDate.slice(0, 7)   // "YYYY-MM"
-    : (paper.year || 'Year unknown');
-
-  const scoreClass = paper.score >= 4 ? 'high' : paper.score >= 2 ? 'mid' : '';
-
-  // Citation count
-  const citeStr = (typeof paper.citationCount === 'number')
-    ? `<span class="citation-count" title="Citations">📄 ${paper.citationCount}</span>`
+  // ── Year + "N yrs ago" ──────────────────────────────────────
+  const pubYear = paper.publicationDate
+    ? new Date(paper.publicationDate).getFullYear()
+    : (paper.year || null);
+  const yearDisplay = paper.publicationDate
+    ? paper.publicationDate.slice(0, 7)  // "YYYY-MM"
+    : (paper.year ? String(paper.year) : 'Year unknown');
+  const currentYear = new Date().getFullYear();
+  const yearsAgoStr = pubYear && pubYear < currentYear
+    ? ` · ${currentYear - pubYear} yr${currentYear - pubYear === 1 ? '' : 's'} ago`
     : '';
 
-  // Abstract with optional search highlight (input is pre-escaped → safe)
-  const rawAbstract = paper.abstract || '';
+  // ── Open access + PDF ───────────────────────────────────────
+  const isOA   = !!paper.isOpenAccess;
+  const pdfUrl = paper.openAccessPdf?.url || null;
+  const oaBadge = isOA
+    ? `<span class="oa-badge" title="Open Access — free to read">🔓</span>`
+    : `<span class="oa-badge locked" title="Paywalled">🔒</span>`;
+  const pdfLink = pdfUrl
+    ? `<a class="pdf-link" href="${esc(pdfUrl)}" target="_blank" rel="noopener">PDF ↗</a>`
+    : '';
+
+  // ── Score badge ─────────────────────────────────────────────
+  const scoreClass = paper.score >= 4 ? 'high' : paper.score >= 2 ? 'mid' : '';
+
+  // ── Citation metrics ────────────────────────────────────────
+  const citeCount  = typeof paper.citationCount          === 'number' ? paper.citationCount          : null;
+  const inflCount  = typeof paper.influentialCitationCount === 'number' ? paper.influentialCitationCount : null;
+  const refCount   = typeof paper.referenceCount         === 'number' ? paper.referenceCount         : null;
+
+  // Colour tier for total citations
+  const citeBadgeClass = citeCount === null ? ''
+    : citeCount < 10  ? 'cite-grey'
+    : citeCount < 50  ? 'cite-blue'
+    : citeCount < 200 ? 'cite-green'
+    : 'cite-gold';
+
+  // Citation velocity
+  const vel      = velocityLabel(paper);
+  const velClass = `velocity-${vel}`;
+  const velIcon  = vel === 'trending' ? '🔥' : vel === 'growing' ? '↗' : '→';
+  const velText  = vel === 'trending' ? 'Trending' : vel === 'growing' ? 'Growing' : 'Stable';
+
+  // Highly influential badge (inflCitations ≥ 10)
+  const highlyInflBadge = (inflCount !== null && inflCount >= 10)
+    ? `<span class="metric highly-influential-badge" title="This paper has ≥10 influential citations">🏆 Highly Influential</span>`
+    : '';
+
+  // ── Venue ───────────────────────────────────────────────────
+  const venueName = paper.publicationVenue?.name || '';
+  const venueHtml = venueName
+    ? `<span class="metric venue-name" title="${esc(venueName)}">${esc(venueName.length > 45 ? venueName.slice(0, 42) + '…' : venueName)}</span>`
+    : '';
+
+  // ── Fields of study (max 3 tags) ────────────────────────────
+  const fields    = (paper.fieldsOfStudy || []).slice(0, 3);
+  const fieldTagsHtml = fields.length
+    ? `<div class="field-tags">${fields.map(f => `<span class="field-tag">${esc(f)}</span>`).join('')}</div>`
+    : '';
+
+  // ── Metrics row ─────────────────────────────────────────────
+  const metricsHtml = `
+    <div class="paper-metrics">
+      ${citeCount !== null ? `<span class="metric ${citeBadgeClass}" title="Total citations">📄 ${citeCount}</span>` : ''}
+      ${inflCount !== null ? `<span class="metric" title="Influential citations — papers that substantially built on this work">⭐ ${inflCount} infl.</span>` : ''}
+      ${refCount  !== null ? `<span class="metric" title="Number of references (papers this work cites)">↙ ${refCount} refs</span>` : ''}
+      <span class="metric ${velClass}" title="Citation velocity: citations per year since publication">${velIcon} ${velText}</span>
+      ${highlyInflBadge}
+      ${venueHtml}
+    </div>
+    ${fieldTagsHtml}`;
+
+  // ── Abstract ─────────────────────────────────────────────────
+  const rawAbstract  = paper.abstract || '';
   const abstractHtml = rawAbstract
     ? highlightSearchTerms(esc(rawAbstract), searchQuery)
     : '<em style="color:var(--text-muted)">No abstract available.</em>';
 
-  // Title with optional search highlight
+  // ── Title ─────────────────────────────────────────────────────
   const titleHtml = highlightSearchTerms(esc(paper.title || 'Untitled'), searchQuery);
 
-  // Matched keyword tags
-  const matched   = getMatchedKeywords(paper);
+  // ── Matched keyword tags ──────────────────────────────────────
+  const matched    = getMatchedKeywords(paper);
   const kwTagsHtml = matched.length
     ? `<div class="paper-keyword-tags">${matched.map(k => `<span class="matched-kw-tag">${esc(k)}</span>`).join('')}</div>`
     : '';
 
-  // Whether this paper has been seen before
+  // ── Unread indicator ─────────────────────────────────────────
   const isUnread = paperId && !seenPaperIds.has(paperId);
 
-  // Action buttons — disabled when signed out
-  const a          = userActions[paperId] || {};
+  // ── Action buttons — disabled when signed out ─────────────────
+  const a           = userActions[paperId] || {};
   const disabledCls = currentUser ? '' : ' disabled-action';
-  const likedLbl   = a.liked  ? '❤ Liked'    : '♡ Like';
-  const savedLbl   = a.saved  ? '🔖 Saved'   : '🔖 Save';
-  const hiddenLbl  = a.hidden ? '👁 Unhide'  : '🙈 Hide';
+  const likedLbl    = a.liked  ? '❤ Liked'   : '♡ Like';
+  const savedLbl    = a.saved  ? '🔖 Saved'  : '🔖 Save';
+  const hiddenLbl   = a.hidden ? '👁 Unhide' : '🙈 Hide';
 
   return `
     <article class="paper-card${isUnread ? ' paper-card--unread' : ''}" data-paperid="${esc(paperId)}">
@@ -2203,12 +2641,17 @@ function buildPaperCardHtml(paper) {
         </span>
       </div>
       <div class="paper-meta">
-        ${esc(authorStr)} &nbsp;·&nbsp; ${esc(String(year))} ${citeStr}
+        <a class="author-link" href="${esc(authorProfileUrl)}" target="_blank" rel="noopener"
+           title="View author profile on Semantic Scholar">${esc(firstAuthor)}</a>${authorCount > 1
+          ? ` <span class="author-count">+${authorCount - 1} author${authorCount > 2 ? 's' : ''}</span>` : ''}
+        &nbsp;·&nbsp; ${esc(yearDisplay)}${esc(yearsAgoStr)}
+        &nbsp; ${oaBadge} ${pdfLink}
       </div>
       <p class="paper-abstract" id="abstract-${esc(paperId)}">${abstractHtml}</p>
       ${rawAbstract.length > 300
         ? `<button class="expand-btn" data-paperid="${esc(paperId)}">Show more</button>`
         : ''}
+      ${metricsHtml}
       ${kwTagsHtml}
       <div class="paper-actions">
         <button class="action-btn like-btn${a.liked ? ' active' : ''}${disabledCls}"
