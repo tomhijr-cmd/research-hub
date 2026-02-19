@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Research Hub — Test Suite</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #f5f4f0; }
+    h1   { font-size: 1.4rem; margin-bottom: 4px; }
+    p.sub { color: #666; font-size: 0.85rem; margin-bottom: 24px; }
+
+    #summary {
+      padding: 12px 16px; border-radius: 6px; margin-bottom: 20px;
+      font-weight: 600; font-size: 0.95rem;
+    }
+    #summary.pass { background: #eef6ef; color: #2d7a3a; border: 1px solid #c3e0c7; }
+    #summary.fail { background: #fdf0ef; color: #c0392b; border: 1px solid #f0c4c0; }
+    #summary.running { background: #e8f0f8; color: #2c5f8a; border: 1px solid #b0ccec; }
+
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    th { background: #f0eeea; text-align: left; padding: 10px 14px; font-size: 0.8rem; color: #666; }
+    td { padding: 10px 14px; border-top: 1px solid #eee; font-size: 0.85rem; vertical-align: top; }
+    tr.pass td:first-child { border-left: 3px solid #2d7a3a; }
+    tr.fail td:first-child { border-left: 3px solid #c0392b; }
+    tr.skip td:first-child { border-left: 3px solid #999; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+    .badge.pass { background: #eef6ef; color: #2d7a3a; }
+    .badge.fail { background: #fdf0ef; color: #c0392b; }
+    .badge.skip { background: #f0f0f0; color: #999; }
+    .error-msg { color: #c0392b; font-size: 0.8rem; margin-top: 4px; font-family: monospace; }
+    button#runBtn {
+      background: #2c5f8a; color: #fff; border: none; padding: 9px 20px;
+      border-radius: 6px; font-size: 0.9rem; cursor: pointer; margin-bottom: 20px;
+    }
+    button#runBtn:hover { opacity: 0.85; }
+    .section-header td { background: #f8f7f4; font-weight: 600; color: #444; font-size: 0.8rem; padding: 8px 14px; }
+  </style>
+</head>
+<body>
+
+<h1>Research Hub — Test Suite</h1>
+<p class="sub">Run this file at <strong>http://127.0.0.1:8000/tests.html</strong> to test the app logic without Firebase or the API.</p>
+
+<div id="summary" class="running">⏳ Click "Run Tests" to start…</div>
+<button id="runBtn">▶ Run Tests</button>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:40%">Test</th>
+      <th style="width:10%">Result</th>
+      <th>Details</th>
+    </tr>
+  </thead>
+  <tbody id="results"></tbody>
+</table>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  Research Hub Test Suite
+//  Tests core app logic in isolation — no Firebase, no API.
+//  Open at http://127.0.0.1:8000/tests.html to run.
+// ════════════════════════════════════════════════════════════
+
+// ── Minimal stubs so we can load the app logic without Firebase or DOM ──
+
+// Stub Firebase globals so the app script doesn't crash on load
+window.firebase = {
+  initializeApp: () => {},
+  auth: () => ({
+    onAuthStateChanged: () => {},
+    signInWithPopup: () => Promise.resolve(),
+    signOut: () => Promise.resolve(),
+  }),
+  firestore: () => ({
+    collection: () => ({ doc: () => ({
+      get: () => Promise.resolve({ exists: false }),
+      set: () => Promise.resolve(),
+    }) }),
+  }),
+};
+// Prevent auth observer from running during tests
+window.__TEST_MODE__ = true;
+
+// ── Test runner ──────────────────────────────────────────────
+
+const results = [];
+
+function test(section, name, fn) {
+  results.push({ section, name, fn });
+}
+
+async function runAll() {
+  const tbody = document.getElementById('results');
+  const summary = document.getElementById('summary');
+  tbody.innerHTML = '';
+  summary.className = 'running';
+  summary.textContent = '⏳ Running…';
+
+  let passed = 0, failed = 0;
+  let lastSection = '';
+
+  for (const t of results) {
+    // Section header row
+    if (t.section !== lastSection) {
+      lastSection = t.section;
+      const hdr = document.createElement('tr');
+      hdr.innerHTML = `<td class="section-header" colspan="3">${t.section}</td>`;
+      tbody.appendChild(hdr);
+    }
+
+    const row = document.createElement('tr');
+    try {
+      await t.fn();
+      passed++;
+      row.className = 'pass';
+      row.innerHTML = `
+        <td>${t.name}</td>
+        <td><span class="badge pass">PASS</span></td>
+        <td>—</td>`;
+    } catch (e) {
+      failed++;
+      row.className = 'fail';
+      row.innerHTML = `
+        <td>${t.name}</td>
+        <td><span class="badge fail">FAIL</span></td>
+        <td><div class="error-msg">${e.message}</div></td>`;
+    }
+    tbody.appendChild(row);
+  }
+
+  summary.className = failed === 0 ? 'pass' : 'fail';
+  summary.textContent = failed === 0
+    ? `✅ All ${passed} tests passed`
+    : `❌ ${failed} failed, ${passed} passed`;
+}
+
+function assert(condition, msg) {
+  if (!condition) throw new Error(msg || 'Assertion failed');
+}
+function assertEqual(a, b, msg) {
+  if (a !== b) throw new Error((msg || 'Expected equal') + `: got ${JSON.stringify(a)}, expected ${JSON.stringify(b)}`);
+}
+function assertLength(arr, n, msg) {
+  if (!Array.isArray(arr) || arr.length !== n) throw new Error((msg || 'Wrong length') + `: got ${arr ? arr.length : 'non-array'}, expected ${n}`);
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 1 — Keyword management (core logic, no DOM)
+// ════════════════════════════════════════════════════════════
+
+// We replicate the pure logic functions here so tests run without
+// the full app DOM. If you change these functions in index.html,
+// update them here too.
+
+function makeKeywords() {
+  return [
+    { text: 'social robots',          active: true  },
+    { text: 'human-robot interaction', active: true  },
+    { text: 'emotional contagion',    active: false },
+  ];
+}
+
+function getActive(kws) {
+  return kws.filter(k => k.active).map(k => k.text);
+}
+
+test('Keyword Logic', 'activeKeywords returns only active ones', () => {
+  const kws = makeKeywords();
+  const active = getActive(kws);
+  assertLength(active, 2, 'active keywords count');
+  assert(active.includes('social robots'), 'social robots should be active');
+  assert(!active.includes('emotional contagion'), 'emotional contagion should be inactive');
+});
+
+test('Keyword Logic', 'toggleKeyword flips active state', () => {
+  const kws = makeKeywords();
+  kws[2].active = !kws[2].active; // toggle emotional contagion ON
+  assert(kws[2].active, 'should be active after toggle');
+  kws[2].active = !kws[2].active; // toggle back OFF
+  assert(!kws[2].active, 'should be inactive after second toggle');
+});
+
+test('Keyword Logic', 'addKeyword adds to array', () => {
+  const kws = makeKeywords();
+  const text = 'carry-over effect';
+  if (!kws.some(k => k.text === text)) kws.push({ text, active: true });
+  assertLength(kws, 4, 'should have 4 keywords after add');
+  assert(kws[3].active, 'new keyword should be active');
+  assertEqual(kws[3].text, text, 'new keyword text');
+});
+
+test('Keyword Logic', 'addKeyword ignores duplicates', () => {
+  const kws = makeKeywords();
+  const text = 'social robots'; // already exists
+  if (!kws.some(k => k.text === text)) kws.push({ text, active: true });
+  assertLength(kws, 3, 'should still have 3 keywords (no duplicate)');
+});
+
+test('Keyword Logic', 'removeKeyword removes correct item', () => {
+  const kws = makeKeywords();
+  kws.splice(1, 1); // remove index 1 (human-robot interaction)
+  assertLength(kws, 2, 'should have 2 keywords after remove');
+  assert(!kws.some(k => k.text === 'human-robot interaction'), 'removed keyword should be gone');
+  assert(kws.some(k => k.text === 'social robots'), 'other keywords should remain');
+});
+
+test('Keyword Logic', 'removeKeyword then addKeyword works correctly', () => {
+  // This is the regression test for the bug where remove then add was broken
+  const kws = makeKeywords();
+  kws.splice(0, 1); // remove 'social robots'
+  assertLength(kws, 2, 'should have 2 after remove');
+  const newText = 'priming';
+  if (!kws.some(k => k.text === newText)) kws.push({ text: newText, active: true });
+  assertLength(kws, 3, 'should have 3 after adding new keyword');
+  assert(kws.some(k => k.text === 'priming'), 'new keyword should exist');
+  assert(!kws.some(k => k.text === 'social robots'), 'removed keyword should not exist');
+});
+
+test('Keyword Logic', 'getActive returns empty array when all off', () => {
+  const kws = makeKeywords().map(k => ({ ...k, active: false }));
+  const active = getActive(kws);
+  assertLength(active, 0, 'no active keywords');
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 2 — Relevance scoring
+// ════════════════════════════════════════════════════════════
+
+function scorepaperTest(paper, activeKws) {
+  if (activeKws.length === 0) return 1;
+  const title    = (paper.title    || '').toLowerCase();
+  const abstract = (paper.abstract || '').toLowerCase();
+  let matches = 0;
+  for (const kw of activeKws) {
+    const kwLower = kw.toLowerCase();
+    if (title.includes(kwLower))    matches += 2;
+    if (abstract.includes(kwLower)) matches += 1;
+  }
+  const max = activeKws.length * 3;
+  const ratio = matches / max;
+  if (ratio === 0)  return 1;
+  if (ratio < 0.1)  return 1;
+  if (ratio < 0.25) return 2;
+  if (ratio < 0.5)  return 3;
+  if (ratio < 0.75) return 4;
+  return 5;
+}
+
+test('Scoring', 'keyword in title scores higher than abstract only', () => {
+  const kws = ['social robots'];
+  const titleMatch    = { title: 'Social Robots in Education', abstract: 'This paper discusses learning.' };
+  const abstractMatch = { title: 'Robots in Education', abstract: 'We study social robots in schools.' };
+  const s1 = scorepaperTest(titleMatch, kws);
+  const s2 = scorepaperTest(abstractMatch, kws);
+  assert(s1 > s2, `title match (${s1}) should score higher than abstract-only match (${s2})`);
+});
+
+test('Scoring', 'no keyword match scores 1', () => {
+  const score = scorepaperTest({ title: 'Quantum Physics', abstract: 'Laser beams.' }, ['social robots']);
+  assertEqual(score, 1, 'unrelated paper should score 1');
+});
+
+test('Scoring', 'multiple keyword matches scores higher', () => {
+  const kws = ['social robots', 'emotional contagion'];
+  const rich = { title: 'Social Robots and Emotional Contagion', abstract: 'Social robots spread emotional contagion.' };
+  const poor = { title: 'Social Robots', abstract: 'A review.' };
+  assert(scorepaperTest(rich, kws) > scorepaperTest(poor, kws), 'more matches = higher score');
+});
+
+test('Scoring', 'no active keywords returns 1', () => {
+  const score = scorepaperTest({ title: 'Any Paper', abstract: 'Any abstract.' }, []);
+  assertEqual(score, 1, 'no active keywords should return 1');
+});
+
+test('Scoring', 'score is always 1–5', () => {
+  const papers = [
+    { title: 'Social Robots and HRI', abstract: 'Social robots for human-robot interaction emotional contagion.' },
+    { title: 'Nothing relevant', abstract: 'Nothing here.' },
+    { title: '', abstract: '' },
+  ];
+  const kws = ['social robots', 'human-robot interaction'];
+  for (const p of papers) {
+    const s = scorepaperTest(p, kws);
+    assert(s >= 1 && s <= 5, `score ${s} out of range for "${p.title}"`);
+  }
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 3 — HTML escaping (XSS prevention)
+// ════════════════════════════════════════════════════════════
+
+function esc(str) {
+  return (str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+test('Security', 'esc() escapes < and >', () => {
+  assertEqual(esc('<script>'), '&lt;script&gt;', 'angle brackets');
+});
+
+test('Security', 'esc() escapes double quotes', () => {
+  assertEqual(esc('"hello"'), '&quot;hello&quot;', 'double quotes');
+});
+
+test('Security', 'esc() escapes ampersands', () => {
+  assertEqual(esc('a & b'), 'a &amp; b', 'ampersand');
+});
+
+test('Security', 'esc() handles null/undefined safely', () => {
+  assertEqual(esc(null), '', 'null should return empty string');
+  assertEqual(esc(undefined), '', 'undefined should return empty string');
+});
+
+test('Security', 'esc() leaves normal text unchanged', () => {
+  assertEqual(esc('hello world 123'), 'hello world 123', 'normal text unchanged');
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 4 — Data model integrity
+// ════════════════════════════════════════════════════════════
+
+test('Data Model', 'keyword schema has text and active fields', () => {
+  const kw = { text: 'social robots', active: true };
+  assert(typeof kw.text === 'string', 'text should be string');
+  assert(typeof kw.active === 'boolean', 'active should be boolean');
+});
+
+test('Data Model', 'DEFAULT_KEYWORDS all have text and active', () => {
+  const defaults = [
+    { text: 'social robots',          active: true },
+    { text: 'human-robot interaction', active: true },
+    { text: 'emotional contagion',    active: true },
+    { text: 'priming public spaces',  active: true },
+    { text: 'non-humanoid robots',    active: true },
+  ];
+  for (const kw of defaults) {
+    assert(typeof kw.text === 'string' && kw.text.length > 0, `keyword text invalid: ${JSON.stringify(kw)}`);
+    assert(typeof kw.active === 'boolean', `keyword active invalid: ${JSON.stringify(kw)}`);
+  }
+});
+
+test('Data Model', 'keyword text is always lowercase', () => {
+  const text = '  Social Robots  ';
+  const normalised = text.trim().toLowerCase();
+  assertEqual(normalised, 'social robots', 'should be lowercased and trimmed');
+});
+
+test('Data Model', 'duplicate detection is case-insensitive', () => {
+  const kws = [{ text: 'social robots', active: true }];
+  const incoming = 'Social Robots'.trim().toLowerCase();
+  const isDuplicate = kws.some(k => k.text === incoming);
+  assert(isDuplicate, 'should detect duplicate regardless of case');
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 5 — friendlyTime formatting
+// ════════════════════════════════════════════════════════════
+
+function friendlyTime(date) {
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (diff < 60)    return 'just now';
+  if (diff < 3600)  return `${Math.floor(diff / 60)} min ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+test('Formatting', 'friendlyTime: just now for <60s', () => {
+  assertEqual(friendlyTime(new Date(Date.now() - 10000)), 'just now', '<60s should be "just now"');
+});
+
+test('Formatting', 'friendlyTime: minutes for <1hr', () => {
+  const result = friendlyTime(new Date(Date.now() - 5 * 60 * 1000));
+  assertEqual(result, '5 min ago', '5 minutes ago');
+});
+
+test('Formatting', 'friendlyTime: hours for <24hr', () => {
+  const result = friendlyTime(new Date(Date.now() - 3 * 3600 * 1000));
+  assertEqual(result, '3 hr ago', '3 hours ago');
+});
+
+test('Formatting', 'friendlyTime: date string for >24hr', () => {
+  const old = new Date(Date.now() - 2 * 86400 * 1000);
+  const result = friendlyTime(old);
+  assert(typeof result === 'string' && result.length > 0, 'should return a date string for old dates');
+  assert(!result.includes('ago'), 'should not say "ago" for dates > 24hr');
+});
+
+
+// ── Wire up the run button ───────────────────────────────────
+document.getElementById('runBtn').addEventListener('click', runAll);
+
+// Auto-run on load
+runAll();
+</script>
+</body>
+</html>

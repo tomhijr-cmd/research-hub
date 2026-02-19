@@ -933,9 +933,6 @@ function bindEvents() {
 // ── Keyword management ──────────────────────────────────────
 
 function addKeyword() {
-  // Silently block if signed out (the row is visually dimmed anyway)
-  if (!currentUser) return;
-
   const input = document.getElementById('newKeywordInput');
   const text  = input.value.trim().toLowerCase();
 
@@ -948,7 +945,7 @@ function addKeyword() {
   }
 
   keywords.push({ text, active: true });
-  saveKeywords();
+  saveKeywords(); // saves to Firestore if signed in, no-op if signed out
   input.value = '';
   renderKeywordChips();
   renderActiveKeywordsBar();
@@ -956,18 +953,16 @@ function addKeyword() {
 }
 
 function removeKeyword(index) {
-  if (!currentUser) return; // read-only when signed out
   keywords.splice(index, 1);
-  saveKeywords();
+  saveKeywords(); // saves to Firestore if signed in, no-op if signed out
   renderKeywordChips();
   renderActiveKeywordsBar();
   fetchPapers(); // re-fetch with updated keyword set
 }
 
 function toggleKeyword(index) {
-  // Toggling is allowed even when signed out (just not persisted)
   keywords[index].active = !keywords[index].active;
-  saveKeywords();
+  saveKeywords(); // saves to Firestore if signed in, no-op if signed out
   renderKeywordChips();
   renderActiveKeywordsBar();
   fetchPapers(); // re-fetch so the feed reflects the new active set
