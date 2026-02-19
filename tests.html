@@ -229,10 +229,11 @@ test('Keyword Logic', 'getActive returns empty array when all off', () => {
 // ════════════════════════════════════════════════════════════
 
 function scorepaperTest(paper, activeKws) {
+  // Mirror of scorepaper() in index.html — must be kept in sync.
   if (activeKws.length === 0) return 1;
   const title    = (paper.title    || '').toLowerCase();
   const abstract = (paper.abstract || '').toLowerCase();
-  let matches    = 0;
+  let depthScore = 0;
   let matchedKws = 0;
   for (const kw of activeKws) {
     const kwLower    = kw.toLowerCase();
@@ -240,27 +241,35 @@ function scorepaperTest(paper, activeKws) {
     const inAbstract = abstract.includes(kwLower);
     if (inTitle || inAbstract) {
       matchedKws++;
-      if (inTitle)    matches += 2;
-      if (inAbstract) matches += 1;
+      if (inTitle)    depthScore += 2;
+      if (inAbstract) depthScore += 1;
     }
   }
   if (matchedKws === 0) return 1;
-  const ratio = matches / (matchedKws * 3);
-  if (ratio < 0.5)  return 3;
-  if (ratio < 0.75) return 4;
-  return 5;
+  const breadth  = matchedKws / activeKws.length;
+  const depth    = depthScore / (matchedKws * 3);
+  const combined = (breadth * 0.7) + (depth * 0.3);
+  if (combined >= 0.75) return 5;
+  if (combined >= 0.50) return 4;
+  if (combined >= 0.30) return 3;
+  if (combined >= 0.10) return 2;
+  return 1;
 }
 
-test('Scoring', 'keyword in title scores higher than abstract only', () => {
-  const kws = ['social robots'];
+test('Scoring', 'keyword in title scores higher than abstract only (multi-keyword)', () => {
+  // With multiple keywords, breadth penalises partial matches.
+  // Use 4 keywords; paper only matches 1 via title vs 1 via abstract.
+  const kws = ['social robots', 'human robot interaction', 'priming', 'carryover'];
   const titleMatch    = { title: 'Social Robots in Education', abstract: 'This paper discusses learning.' };
   const abstractMatch = { title: 'Robots in Education', abstract: 'We study social robots in schools.' };
   const s1 = scorepaperTest(titleMatch, kws);
   const s2 = scorepaperTest(abstractMatch, kws);
-  // title-only → 4, abstract-only → 3
-  assertEqual(s1, 4, 'title-only match should score 4');
-  assertEqual(s2, 3, 'abstract-only match should score 3');
+  // breadth = 1/4 = 0.25 for both; depth differs (title=0.667 vs abstract=0.333)
+  // s1: combined = 0.25×0.7 + 0.667×0.3 = 0.175+0.200 = 0.375 → 3
+  // s2: combined = 0.25×0.7 + 0.333×0.3 = 0.175+0.100 = 0.275 → 2
   assert(s1 > s2, `title match (${s1}) should score higher than abstract-only match (${s2})`);
+  assert(s1 >= 2 && s1 <= 5, `title match score ${s1} should be in range 2-5`);
+  assert(s2 >= 1 && s2 <= 5, `abstract match score ${s2} should be in range 1-5`);
 });
 
 test('Scoring', 'no keyword match scores 1', () => {
@@ -268,10 +277,11 @@ test('Scoring', 'no keyword match scores 1', () => {
   assertEqual(score, 1, 'unrelated paper should score 1');
 });
 
-test('Scoring', 'keyword in both title and abstract scores 5', () => {
+test('Scoring', 'single keyword in both title and abstract scores 5', () => {
+  // With only 1 keyword, breadth=1.0, depth=1.0, combined=1.0 → 5
   const kws = ['social robots'];
   const paper = { title: 'Social Robots in Education', abstract: 'Social robots improve outcomes.' };
-  assertEqual(scorepaperTest(paper, kws), 5, 'title + abstract match should score 5');
+  assertEqual(scorepaperTest(paper, kws), 5, 'title + abstract match (1 keyword) should score 5');
 });
 
 test('Scoring', 'multiple keyword matches scores higher', () => {
@@ -281,12 +291,33 @@ test('Scoring', 'multiple keyword matches scores higher', () => {
   assert(scorepaperTest(rich, kws) > scorepaperTest(poor, kws), 'more matches = higher score');
 });
 
+test('Scoring', '1-of-4 keywords match does not score 5 (breadth penalty)', () => {
+  // Core requirement: a paper matching only 1 of 4 active keywords cannot score 5/5,
+  // even if that keyword appears in both title and abstract.
+  const kws = ['human robot interaction', 'social modeling', 'social robots', 'carryover in hri'];
+  const oneMatch = { title: 'Social Modeling in Teams', abstract: 'Social modeling drives group behaviour.' };
+  const score = scorepaperTest(oneMatch, kws);
+  // breadth = 1/4 = 0.25, depth = 1.0 → combined = 0.475 → score 3 (not 5)
+  assert(score < 5, `1-of-4 keyword match should score < 5, got ${score}`);
+  assert(score >= 2, `1-of-4 keyword match should score >= 2, got ${score}`);
+});
+
+test('Scoring', 'matching all 4 keywords scores 5', () => {
+  const kws = ['human robot interaction', 'social modeling', 'social robots', 'carryover in hri'];
+  const allMatch = {
+    title: 'Human Robot Interaction: Social Robots, Social Modeling and Carryover in HRI',
+    abstract: 'We examine human robot interaction alongside social modeling, social robots and carryover in hri.'
+  };
+  assertEqual(scorepaperTest(allMatch, kws), 5, 'all 4 keywords matched should score 5');
+});
+
 test('Scoring', 'no active keywords returns 1', () => {
   const score = scorepaperTest({ title: 'Any Paper', abstract: 'Any abstract.' }, []);
   assertEqual(score, 1, 'no active keywords should return 1');
 });
 
-test('Scoring', 'score is always 1, 3, 4, or 5 (2 removed)', () => {
+test('Scoring', 'score is always between 1 and 5', () => {
+  // New formula can produce all values 1-5 depending on breadth+depth
   const papers = [
     { title: 'Social Robots and HRI', abstract: 'Social robots for human-robot interaction.' },
     { title: 'Nothing relevant', abstract: 'Nothing here.' },
@@ -297,7 +328,6 @@ test('Scoring', 'score is always 1, 3, 4, or 5 (2 removed)', () => {
   for (const p of papers) {
     const s = scorepaperTest(p, kws);
     assert(s >= 1 && s <= 5, `score ${s} out of range for "${p.title}"`);
-    assert(s !== 2, `score 2 should never occur (got ${s} for "${p.title}")`);
   }
 });
 
