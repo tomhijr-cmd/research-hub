@@ -392,6 +392,24 @@
       text-align: center;
     }
 
+    /* ── Health / system status bar (bottom of page) ── */
+    .health-bar {
+      margin-top: 12px;
+      padding: 6px 12px;
+      border-radius: var(--radius);
+      font-size: 0.72rem;
+      display: inline-block;
+      background: var(--tag-bg);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .health-bar.ok    { color: var(--score-high); background: #eef6ef; border-color: #c3e0c7; }
+    .health-bar.error { color: #c0392b;           background: #fdf0ef; border-color: #f0c4c0; }
+
+    [data-theme="dark"] .health-bar.ok    { background: #1a2e1c; border-color: #2d4d30; }
+    [data-theme="dark"] .health-bar.error { background: #2e1a1a; border-color: #4d2d2d; }
+
     /* ── Responsive ── */
     @media (max-width: 600px) {
       .header-title h1 { font-size: 1.2rem; }
@@ -452,6 +470,7 @@
   <footer>
     Data from <a href="https://www.semanticscholar.org/" target="_blank" rel="noopener" style="color:var(--accent)">Semantic Scholar</a>
     — open and free academic search API.
+    <div id="healthBar" class="health-bar" style="display:none;"></div>
   </footer>
 </div>
 
@@ -466,9 +485,12 @@
 
 const STORAGE_KEY   = 'researchhub_keywords'; // localStorage key
 const THEME_KEY     = 'researchhub_theme';
-// Requests go to our local Python proxy (/api/papers) which forwards them
-// to Semantic Scholar server-side. This avoids corporate SSL inspection
-// blocking direct browser-to-API connections.
+const LAST_FETCH_KEY = 'researchhub_last_fetch'; // ISO timestamp of last successful fetch
+const HEALTH_KEY     = 'researchhub_health';     // last health check result {ok, msg, ts}
+const FETCH_TTL_MS   = 24 * 60 * 60 * 1000;     // 24 hours in ms — auto-refresh threshold
+
+// Requests go to our proxy (/api/papers) which forwards them to Semantic Scholar
+// server-side, avoiding CORS/SSL issues in the browser.
 const API_BASE      = '/api/papers';
 const PAPERS_LIMIT  = 30;  // max papers to fetch per search
 
@@ -498,7 +520,8 @@ function init() {
   loadKeywords();
   loadTheme();
   bindEvents();
-  fetchPapers();
+  renderHealthBar(); // show last known health state immediately while loading
+  smartRefresh();    // fetch only if >24h since last fetch (or never fetched)
 }
 
 
@@ -527,6 +550,96 @@ function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   document.getElementById('themeBtn').textContent = theme === 'dark' ? '☀' : '🌙';
   localStorage.setItem(THEME_KEY, theme);
+}
+
+
+// ── Smart refresh ───────────────────────────────────────────
+//
+// Always fetches papers on load (papers aren't cached in localStorage,
+// only the timestamp is). The "last updated" time is shown in the status
+// bar so you can see at a glance whether the feed is fresh.
+//
+// The 24h check is used to decide whether to show a "stale data" warning
+// — if somehow the last fetch was >24h ago, we flag it in the status bar.
+
+function smartRefresh() {
+  fetchPapers(); // always fetch on load — server cache makes this fast
+}
+
+// Returns a human-friendly relative time string, e.g. "2 hours ago", "just now"
+function friendlyTime(date) {
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000); // seconds
+  if (diff < 60)           return 'just now';
+  if (diff < 3600)         return `${Math.floor(diff / 60)} min ago`;
+  if (diff < 86400)        return `${Math.floor(diff / 3600)} hr ago`;
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+
+// ── Health check ────────────────────────────────────────────
+//
+// Runs once on app load (called from fetchPapers on success, or
+// from smartRefresh when skipping the fetch). Checks that the
+// API returned at least one valid paper and saves the result.
+
+async function runHealthCheck() {
+  const firstKeyword = activeKeywords()[0];
+  if (!firstKeyword) return; // nothing to check
+
+  let ok  = false;
+  let msg = '';
+
+  try {
+    const params = new URLSearchParams({
+      query:  firstKeyword,
+      fields: 'title,year',
+      limit:  1,
+    });
+    const res  = await fetch(`${API_BASE}?${params}`);
+    const data = await res.json();
+
+    if (res.status === 429 || (data.message && !data.data)) {
+      msg = 'API rate-limited';
+    } else if (!res.ok) {
+      msg = `API error (HTTP ${res.status})`;
+    } else if (!data.data || data.data.length === 0) {
+      msg = 'API returned no papers';
+    } else if (!data.data[0].title) {
+      msg = 'API returned malformed data';
+    } else {
+      ok  = true;
+      msg = 'All systems good';
+    }
+  } catch (e) {
+    msg = e.message === 'Failed to fetch' ? 'Cannot reach API' : e.message;
+  }
+
+  // Save result to localStorage with timestamp
+  const result = { ok, msg, ts: new Date().toISOString() };
+  localStorage.setItem(HEALTH_KEY, JSON.stringify(result));
+  renderHealthBar(result);
+}
+
+// Render the health bar in the footer.
+// If called with no argument, reads last saved result from localStorage.
+function renderHealthBar(result) {
+  if (!result) {
+    try {
+      const saved = localStorage.getItem(HEALTH_KEY);
+      if (!saved) return;
+      result = JSON.parse(saved);
+    } catch (e) { return; }
+  }
+
+  const el = document.getElementById('healthBar');
+  if (!el) return;
+
+  const time = friendlyTime(new Date(result.ts));
+  el.style.display = 'inline-block';
+  el.className = 'health-bar ' + (result.ok ? 'ok' : 'error');
+  el.textContent = result.ok
+    ? `✅ ${result.msg} — last checked ${time}`
+    : `❌ ${result.msg} — last checked ${time}`;
 }
 
 
@@ -719,7 +832,12 @@ async function fetchPapers() {
     if (papers.length === 0) {
       setStatus('No papers found. The API may be rate-limited — wait 30 seconds and click Refresh.', true);
     } else {
-      setStatus(`Showing ${papers.length} papers — ${new Date().toLocaleTimeString()}`);
+      // Record timestamp of this successful fetch
+      const now = new Date();
+      localStorage.setItem(LAST_FETCH_KEY, now.toISOString());
+      setStatus(`Showing ${papers.length} papers — last updated ${now.toLocaleTimeString()}`);
+      // Run health check after a successful fetch (non-blocking, updates footer)
+      runHealthCheck();
     }
     renderPapers();
 
