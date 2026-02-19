@@ -241,24 +241,180 @@
     }
 
     /* ── Settings Panel ── */
-    .settings-panel {
+    /* ── Side panels (My Topics + Feed Insights) ── */
+    .side-panel {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 20px;
       margin-bottom: 24px;
       box-shadow: var(--shadow);
-      display: none; /* hidden by default, toggled by JS */
+      display: none; /* hidden by default — toggled via .open class */
+      overflow: hidden;
     }
+    .side-panel.open { display: block; }
 
-    .settings-panel.open { display: block; }
-
-    .settings-panel h2 {
+    .side-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .side-panel-header h2 {
       font-family: var(--font-serif);
       font-size: 1rem;
       font-weight: normal;
-      margin-bottom: 14px;
+      margin: 0;
       color: var(--text);
+    }
+    .panel-close-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      padding: 2px 4px;
+      border-radius: 4px;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .panel-close-btn:hover { color: var(--text); }
+
+    .side-panel-body {
+      padding: 16px 20px 20px;
+    }
+    .side-panel-hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin: 0 0 14px;
+      line-height: 1.5;
+    }
+
+    /* ── Insights panel: ✦ button dot indicator ── */
+    #insightsToggle {
+      position: relative;
+    }
+    #insightsToggle.has-insights::after {
+      content: '';
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+
+    /* ── Feed Insights panel content ── */
+    .insights-section {
+      margin-bottom: 18px;
+    }
+    .insights-section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin: 0 0 8px;
+    }
+    .insights-hint {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin: 0 0 8px;
+    }
+    .insights-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    /* Read-only insight chips — no interaction affordance */
+    .insights-chip {
+      background: var(--tag-off);
+      color: var(--tag-off-text);
+      border-radius: 10px;
+      padding: 2px 10px;
+      font-size: 0.75rem;
+      cursor: default;
+      user-select: none;
+    }
+    .insights-empty {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    .insights-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 18px 0 16px;
+    }
+    .insights-reset-area { }
+
+    /* Reset button — subtle, destructive styling only on confirm */
+    .btn-reset-profile {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: var(--radius);
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .btn-reset-profile:hover {
+      color: var(--text);
+      border-color: var(--text-muted);
+    }
+    .reset-warning {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin: 0 0 10px;
+      line-height: 1.5;
+    }
+    .reset-confirm-btns {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn-danger {
+      background: #c0392b;
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 6px 14px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-danger:hover { background: #a93226; }
+
+    /* ── Toast notifications ── */
+    .toast-container {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--text);
+      color: var(--surface);
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    .toast--visible {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     /* Keyword chips container */
@@ -1114,36 +1270,53 @@
       </button>
       <!-- Dark/light mode toggle -->
       <button class="btn-icon" id="themeBtn" title="Toggle dark/light mode" aria-label="Toggle theme">🌙</button>
-      <!-- Settings toggle -->
-      <button class="btn-secondary" id="settingsToggle">⚙ Keywords</button>
+      <!-- My Topics: keyword management -->
+      <button class="btn-secondary" id="keywordsToggle">⚙ My Topics</button>
+      <!-- Feed Insights: system-learned personalisation data -->
+      <button class="btn-icon" id="insightsToggle" title="Feed Insights — what the system learned about you" aria-label="Feed Insights">✦</button>
     </div>
   </header>
 
-  <!-- ── Settings Panel (hidden by default) ── -->
-  <section class="settings-panel" id="settingsPanel" aria-label="Keyword settings">
-    <h2>Search Keywords</h2>
-    <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">
-      Click a keyword to toggle it on/off. Active keywords are used to fetch and score papers.
-      The × button removes a keyword entirely.
-    </p>
-
-    <!-- Sign-in hint shown only when signed out -->
-    <p class="signin-notice" id="signinNotice" style="display:none;">
-      Sign in with Google to save your keywords across devices.
-    </p>
-
-    <!-- Keyword chips are rendered here by JS -->
-    <div class="keyword-list" id="keywordList"></div>
-
-    <!-- Add new keyword — disabled (dimmed) when signed out -->
-    <div class="add-keyword-row" id="addKeywordRow">
-      <input type="text" id="newKeywordInput" placeholder="Add a keyword…" maxlength="80" aria-label="New keyword" />
-      <button class="btn-primary" id="addKeywordBtn">Add</button>
+  <!-- ── Panel 1: My Topics (keyword management) ── -->
+  <section class="side-panel" id="keywordsPanel" aria-label="My Topics">
+    <div class="side-panel-header">
+      <h2>My Topics</h2>
+      <button class="panel-close-btn" id="keywordsPanelClose" aria-label="Close panel">✕</button>
     </div>
-
-    <!-- Research Profile — rendered by renderResearchProfile() when signed in -->
-    <div id="researchProfile" class="research-profile" style="display:none;"></div>
+    <div class="side-panel-body">
+      <p class="side-panel-hint">
+        Click a keyword to toggle it on/off. Active keywords fetch and score papers.
+        The × button removes a keyword entirely.
+      </p>
+      <!-- Sign-in hint shown only when signed out -->
+      <p class="signin-notice" id="signinNotice" style="display:none;">
+        Sign in with Google to save your keywords across devices.
+      </p>
+      <!-- Keyword chips rendered here by JS -->
+      <div class="keyword-list" id="keywordList"></div>
+      <!-- Add keyword row — disabled when signed out -->
+      <div class="add-keyword-row" id="addKeywordRow">
+        <input type="text" id="newKeywordInput" placeholder="Add a keyword…" maxlength="80" aria-label="New keyword" />
+        <button class="btn-primary" id="addKeywordBtn">Add</button>
+      </div>
+    </div>
   </section>
+
+  <!-- ── Panel 2: Feed Insights (system-learned personalisation data) ── -->
+  <section class="side-panel" id="insightsPanel" aria-label="Feed Insights">
+    <div class="side-panel-header">
+      <h2>Feed Insights</h2>
+      <button class="panel-close-btn" id="insightsPanelClose" aria-label="Close panel">✕</button>
+    </div>
+    <div class="side-panel-body">
+      <p class="side-panel-hint">Based on your likes and reading activity.</p>
+      <!-- Content rendered by renderInsightsPanel() -->
+      <div id="insightsPanelBody"></div>
+    </div>
+  </section>
+
+  <!-- ── Toast notification container ── -->
+  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="false"></div>
 
   <!-- ── Active keyword tags shown in feed view ── -->
   <div class="active-keywords-bar" id="activeKeywordsBar"></div>
@@ -1627,16 +1800,19 @@ function addLearnedKeywords(paper) {
 
   if (changed) {
     saveLearnedKeywords();
-    renderResearchProfile();
+    updateInsightsDotIndicator();
+    renderInsightsPanel();
   }
 }
 
-// Remove a learned keyword by text (called from settings UI).
+// Remove a learned keyword by text (called from insights panel UI).
 function removeLearnedKeyword(text) {
   learnedKeywords = learnedKeywords.filter(lk => lk.text !== text);
   saveLearnedKeywords();
   rescoreAll();
-  renderResearchProfile();
+  updateInsightsDotIndicator();
+  renderInsightsPanel();
+  showToast('Removed from your learned topics');
 }
 
 // Load learnedKeywords from the users/{uid} document.
@@ -1664,10 +1840,27 @@ async function saveLearnedKeywords() {
   }
 }
 
+// Show inline confirmation UI in place of the reset button.
+function showResetConfirmation() {
+  const area = document.getElementById('resetConfirmArea');
+  if (!area) return;
+  area.innerHTML = `
+    <p class="reset-warning">This clears inferred keywords, topics, and author data. Your manual keywords stay. This cannot be undone.</p>
+    <div class="reset-confirm-btns">
+      <button class="btn-secondary" id="resetCancelBtn">Cancel</button>
+      <button class="btn-danger" id="resetConfirmBtn">Yes, reset</button>
+    </div>
+  `;
+  document.getElementById('resetCancelBtn').addEventListener('click', () => {
+    area.innerHTML = '<button class="btn-reset-profile" id="resetProfileBtn">🔄 Reset learning profile</button>';
+    document.getElementById('resetProfileBtn').addEventListener('click', showResetConfirmation);
+  });
+  document.getElementById('resetConfirmBtn').addEventListener('click', resetLearningProfile);
+}
+
 // Reset the full learning profile: delete all signals + learned keywords.
 async function resetLearningProfile() {
   if (!currentUser) return;
-  if (!confirm('Reset your learning profile? This will clear all signals and learned keywords. Your manual keywords stay unchanged.')) return;
 
   try {
     // Batch-delete all signal docs
@@ -1688,7 +1881,9 @@ async function resetLearningProfile() {
   userSignals     = {};
   learnedKeywords = [];
   rescoreAll();
-  renderResearchProfile();
+  updateInsightsDotIndicator();
+  renderInsightsPanel();
+  showToast('Learning profile cleared');
 }
 
 
@@ -1777,7 +1972,7 @@ auth.onAuthStateChanged(async (user) => {
   renderKeywordChips();
   renderActiveKeywordsBar();
   renderFilterPanel(); // keyword filter group depends on active keywords
-  renderResearchProfile();
+  updateInsightsDotIndicator();
 
   // Re-score papers already on screen with updated signals + learned keywords
   if (allPapers.length > 0) {
@@ -1905,13 +2100,79 @@ function renderHealthBar(result) {
 }
 
 
+// ── Insights dot indicator ────────────────────────────────────
+
+// Toggle the .has-insights class on the ✦ button whenever learnedKeywords changes.
+function updateInsightsDotIndicator() {
+  const btn = document.getElementById('insightsToggle');
+  if (!btn) return;
+  btn.classList.toggle('has-insights', learnedKeywords.length > 0);
+}
+
+
+// ── Toast notifications ───────────────────────────────────────
+
+// Show a non-blocking toast message at the bottom of the screen.
+function showToast(message, duration = 2500) {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  container.appendChild(toast);
+  // Trigger CSS transition (must be a separate frame from append)
+  requestAnimationFrame(() => toast.classList.add('toast--visible'));
+  setTimeout(() => {
+    toast.classList.remove('toast--visible');
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+  }, duration);
+}
+
+
+// ── Panel open/close helpers ───────────────────────────────────
+
+// Open a named side-panel (closes any already-open panel first).
+function openPanel(id) {
+  ['keywordsPanel', 'insightsPanel'].forEach(pid => {
+    document.getElementById(pid)?.classList.remove('open');
+  });
+  document.getElementById(id)?.classList.add('open');
+}
+
+// Close all side-panels.
+function closeAllPanels() {
+  ['keywordsPanel', 'insightsPanel'].forEach(pid => {
+    document.getElementById(pid)?.classList.remove('open');
+  });
+}
+
+
 // ── Event binding ─────────────────────────────────────────────
 
 function bindEvents() {
-  document.getElementById('settingsToggle').addEventListener('click', () => {
-    document.getElementById('settingsPanel').classList.toggle('open');
+  // Header: My Topics panel
+  document.getElementById('keywordsToggle').addEventListener('click', () => {
+    openPanel('keywordsPanel');
     renderKeywordChips();
   });
+
+  // Header: Feed Insights panel
+  document.getElementById('insightsToggle').addEventListener('click', () => {
+    openPanel('insightsPanel');
+    renderInsightsPanel();
+  });
+
+  // Close buttons inside each panel
+  document.getElementById('keywordsPanelClose').addEventListener('click', closeAllPanels);
+  document.getElementById('insightsPanelClose').addEventListener('click', closeAllPanels);
+
+  // Click outside panels (on .app-main) closes them
+  document.querySelector('.app-main')?.addEventListener('click', (e) => {
+    if (!e.target.closest('.side-panel') && !e.target.closest('#keywordsToggle') && !e.target.closest('#insightsToggle')) {
+      closeAllPanels();
+    }
+  });
+
   document.getElementById('refreshBtn').addEventListener('click', fetchPapers);
   document.getElementById('themeBtn').addEventListener('click', () => {
     const current = document.documentElement.getAttribute('data-theme');
@@ -1963,6 +2224,7 @@ function addKeyword() {
   renderActiveKeywordsBar();
   renderKeywordFilterGroup(); // update filter panel
   fetchPapers();
+  showToast('Keyword added — feed will update');
 }
 
 function removeKeyword(index) {
@@ -1972,6 +2234,7 @@ function removeKeyword(index) {
   renderActiveKeywordsBar();
   renderKeywordFilterGroup();
   fetchPapers();
+  showToast('Keyword removed');
 }
 
 function toggleKeyword(index) {
@@ -3311,16 +3574,14 @@ function showSkeletons() {
 // ── Research Profile UI ───────────────────────────────────────
 // Renders the "Your Research Profile" section in the settings panel.
 // Shows learned keywords, top topics, top authors, and a reset button.
-function renderResearchProfile() {
-  const container = document.getElementById('researchProfile');
+function renderInsightsPanel() {
+  const container = document.getElementById('insightsPanelBody');
   if (!container) return;
 
   if (!currentUser) {
-    container.style.display = 'none';
+    container.innerHTML = '<p class="insights-empty" style="padding:20px 0;color:var(--text-muted);font-size:0.82rem;">Sign in to see your personalised feed insights.</p>';
     return;
   }
-
-  container.style.display = 'block';
 
   // Build top 5 topics from signal data
   const topicFreq = {};
@@ -3357,40 +3618,38 @@ function renderResearchProfile() {
             <button class="remove-learned-btn" data-kw="${esc(lk.text)}" aria-label="Remove ${esc(lk.text)}">×</button>
           </span>`)
         .join('')
-    : '<span class="profile-empty">Like or save papers to start learning.</span>';
+    : '<span class="insights-empty">Like or save papers to start learning.</span>';
 
   const topicsHtml = topTopics.length
-    ? topTopics.map(t => `<span class="profile-topic-chip">${esc(t)}</span>`).join('')
-    : '<span class="profile-empty">No engagement data yet.</span>';
+    ? topTopics.map(t => `<span class="insights-chip">${esc(t)}</span>`).join('')
+    : '<span class="insights-empty">No engagement data yet.</span>';
 
   const authorsHtml = topAuthors.length
-    ? topAuthors.map(a => `<span class="profile-topic-chip">${esc(a)}</span>`).join('')
-    : '<span class="profile-empty">Like or click papers to track authors.</span>';
+    ? topAuthors.map(a => `<span class="insights-chip">${esc(a)}</span>`).join('')
+    : '<span class="insights-empty">Like or click papers to track authors.</span>';
 
   container.innerHTML = `
-    <div class="research-profile-inner">
-      <h3 class="profile-heading">Your Research Profile</h3>
-      <p class="profile-subtitle">Learned from your interactions — helps personalise your feed.</p>
+    <div class="insights-section">
+      <h3 class="insights-section-title">Keywords Learned for You</h3>
+      <p class="insights-hint">Extracted from papers you liked or saved. Click × to remove.</p>
+      <div class="learned-kw-list" id="learnedKeywordList">${learnedHtml}</div>
+    </div>
 
-      <div class="profile-section">
-        <h4 class="profile-section-title">Keywords Learned for You</h4>
-        <p class="profile-hint">From papers you liked or saved. Click × to remove.</p>
-        <div class="learned-kw-list" id="learnedKeywordList">${learnedHtml}</div>
+    <div class="insights-section">
+      <h3 class="insights-section-title">Your Top Topics</h3>
+      <div class="insights-chips">${topicsHtml}</div>
+    </div>
+
+    <div class="insights-section">
+      <h3 class="insights-section-title">Authors You Engage With Most</h3>
+      <div class="insights-chips">${authorsHtml}</div>
+    </div>
+
+    <hr class="insights-divider">
+    <div class="insights-reset-area">
+      <div id="resetConfirmArea">
+        <button class="btn-reset-profile" id="resetProfileBtn">🔄 Reset learning profile</button>
       </div>
-
-      <div class="profile-section">
-        <h4 class="profile-section-title">Your Top Topics</h4>
-        <div class="profile-chips">${topicsHtml}</div>
-      </div>
-
-      <div class="profile-section">
-        <h4 class="profile-section-title">Authors You Engage With Most</h4>
-        <div class="profile-chips">${authorsHtml}</div>
-      </div>
-
-      <button class="btn-secondary btn-reset-profile" id="resetProfileBtn">
-        🔄 Reset my learning profile
-      </button>
     </div>
   `;
 
@@ -3402,9 +3661,9 @@ function renderResearchProfile() {
     });
   });
 
-  // Wire up reset button
+  // Wire up reset button (inline confirmation)
   const resetBtn = document.getElementById('resetProfileBtn');
-  if (resetBtn) resetBtn.addEventListener('click', resetLearningProfile);
+  if (resetBtn) resetBtn.addEventListener('click', showResetConfirmation);
 }
 
 
