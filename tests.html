@@ -394,6 +394,399 @@ test('Formatting', 'friendlyTime: date string for >24hr', () => {
 });
 
 
+// ════════════════════════════════════════════════════════════
+//  SECTION 6 — Search filter (applySearchFilter)
+// ════════════════════════════════════════════════════════════
+
+// Replicated from index.html — update both if logic changes
+function applySearchFilter(arr, q) {
+  if (!q || !q.trim()) return arr;
+  const term = q.trim().toLowerCase();
+  return arr.filter(p => {
+    const title    = (p.title    || '').toLowerCase();
+    const abstract = (p.abstract || '').toLowerCase();
+    const authors  = (p.authors  || []).map(a => (a.name || '').toLowerCase()).join(' ');
+    return title.includes(term) || abstract.includes(term) || authors.includes(term);
+  });
+}
+
+const samplePapers = [
+  { paperId: 'p1', title: 'Social Robots in Public Spaces', abstract: 'We study robots.', authors: [{ name: 'Alice Smith' }] },
+  { paperId: 'p2', title: 'Emotional Contagion',           abstract: 'About social robots and emotions.', authors: [{ name: 'Bob Jones' }] },
+  { paperId: 'p3', title: 'Quantum Physics',               abstract: 'Laser beams and quarks.',            authors: [{ name: 'Carol White' }] },
+];
+
+test('Search Filter', 'empty query returns all papers', () => {
+  assertLength(applySearchFilter(samplePapers, ''), 3, 'empty query = all');
+});
+
+test('Search Filter', 'null query returns all papers', () => {
+  assertLength(applySearchFilter(samplePapers, null), 3, 'null query = all');
+});
+
+test('Search Filter', 'title match returns correct paper', () => {
+  const res = applySearchFilter(samplePapers, 'quantum');
+  assertLength(res, 1, 'one title match');
+  assertEqual(res[0].paperId, 'p3', 'correct paper id');
+});
+
+test('Search Filter', 'abstract match returns correct paper', () => {
+  const res = applySearchFilter(samplePapers, 'emotions');
+  assertLength(res, 1, 'one abstract match');
+  assertEqual(res[0].paperId, 'p2', 'correct paper id');
+});
+
+test('Search Filter', 'author name match returns correct paper', () => {
+  const res = applySearchFilter(samplePapers, 'carol');
+  assertLength(res, 1, 'one author match');
+  assertEqual(res[0].paperId, 'p3', 'correct paper id');
+});
+
+test('Search Filter', 'search is case-insensitive', () => {
+  const res = applySearchFilter(samplePapers, 'SOCIAL ROBOTS');
+  assert(res.length >= 1, 'case-insensitive match should work');
+});
+
+test('Search Filter', 'no match returns empty array', () => {
+  assertLength(applySearchFilter(samplePapers, 'zzznomatch'), 0, 'no match = empty');
+});
+
+test('Search Filter', 'regex special chars are treated as literals', () => {
+  // Query contains regex special chars — should not throw, just return 0 matches
+  let threw = false;
+  try { applySearchFilter(samplePapers, '(robots|lasers)'); }
+  catch (e) { threw = true; }
+  assert(!threw, 'regex special chars should not throw');
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 7 — Filter functions
+// ════════════════════════════════════════════════════════════
+
+// applyScoreFilter
+function applyScoreFilter(arr, scores) {
+  if (!scores || scores.length === 5) return arr;
+  return arr.filter(p => scores.includes(p.score));
+}
+
+// applyDateFilter
+function applyDateFilter(arr, range) {
+  if (range === 'all') return arr;
+  const now = Date.now();
+  const cutoffMs = { '7d': 7*24*60*60*1000, '30d': 30*24*60*60*1000, '90d': 90*24*60*60*1000, '1y': 365*24*60*60*1000 }[range];
+  if (!cutoffMs) return arr;
+  const cutoff = now - cutoffMs;
+  return arr.filter(p => {
+    const dateStr = p.publicationDate || (p.year ? `${p.year}-01-01` : null);
+    if (!dateStr) return false;
+    const ts = new Date(dateStr).getTime();
+    return !isNaN(ts) && ts >= cutoff;
+  });
+}
+
+// applyKeywordFilter
+function applyKeywordFilter(arr, kws) {
+  if (!kws || kws.length === 0) return arr;
+  const kwsLower = kws.map(k => k.toLowerCase());
+  return arr.filter(p => {
+    const text = ((p.title || '') + ' ' + (p.abstract || '')).toLowerCase();
+    return kwsLower.some(kw => text.includes(kw));
+  });
+}
+
+// applyCitationFilter
+function applyCitationFilter(arr, min) {
+  if (!min || min === 0) return arr;
+  return arr.filter(p => (p.citationCount || 0) >= min);
+}
+
+const scoredPapers = [
+  { paperId: 'a', score: 5, publicationDate: null, year: 2024, citationCount: 200, title: 'social robots', abstract: '' },
+  { paperId: 'b', score: 3, publicationDate: null, year: 2020, citationCount: 5,   title: 'robots',        abstract: '' },
+  { paperId: 'c', score: 1, publicationDate: null, year: 2015, citationCount: 0,   title: 'lasers',        abstract: '' },
+];
+
+test('Filter Logic', 'applyScoreFilter keeps matching scores', () => {
+  const res = applyScoreFilter(scoredPapers, [5]);
+  assertLength(res, 1, 'only score-5 papers');
+  assertEqual(res[0].paperId, 'a', 'correct paper');
+});
+
+test('Filter Logic', 'applyScoreFilter with all 5 scores returns all', () => {
+  assertLength(applyScoreFilter(scoredPapers, [1,2,3,4,5]), 3, 'all scores = all papers');
+});
+
+test('Filter Logic', 'applyDateFilter all returns all papers', () => {
+  assertLength(applyDateFilter(scoredPapers, 'all'), 3, '"all" returns everything');
+});
+
+test('Filter Logic', 'applyDateFilter 7d excludes old papers', () => {
+  // Year 2015 paper should be excluded by 7d filter
+  const res = applyDateFilter(scoredPapers, '7d');
+  assert(!res.some(p => p.paperId === 'c'), 'old paper excluded by 7d filter');
+});
+
+test('Filter Logic', 'applyKeywordFilter matches keyword in title', () => {
+  const res = applyKeywordFilter(scoredPapers, ['social robots']);
+  assertLength(res, 1, 'one title match');
+  assertEqual(res[0].paperId, 'a', 'correct paper');
+});
+
+test('Filter Logic', 'applyKeywordFilter empty array returns all', () => {
+  assertLength(applyKeywordFilter(scoredPapers, []), 3, 'empty kw filter = all');
+});
+
+test('Filter Logic', 'applyCitationFilter min=0 returns all', () => {
+  assertLength(applyCitationFilter(scoredPapers, 0), 3, 'min=0 = all');
+});
+
+test('Filter Logic', 'applyCitationFilter min=100 filters correctly', () => {
+  const res = applyCitationFilter(scoredPapers, 100);
+  assertLength(res, 1, 'only paper with >=100 citations');
+  assertEqual(res[0].paperId, 'a', 'correct paper');
+});
+
+test('Filter Logic', 'applyCitationFilter treats missing citationCount as 0', () => {
+  const papers = [{ paperId: 'x', title: 'test' }]; // no citationCount field
+  assertLength(applyCitationFilter(papers, 10), 0, 'missing citationCount treated as 0');
+});
+
+test('Filter Logic', 'applyDateFilter uses publicationDate when available', () => {
+  // Paper with publicationDate set to today should survive 7d filter
+  const today = new Date().toISOString().slice(0, 10);
+  const recentPaper = [{ paperId: 'r', publicationDate: today, title: 'test' }];
+  const res = applyDateFilter(recentPaper, '7d');
+  assertLength(res, 1, 'today\'s paper survives 7d filter');
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 8 — Status filter (applyStatusFilter)
+// ════════════════════════════════════════════════════════════
+
+function applyStatusFilter(arr, status, actions, seenIds) {
+  if (status === 'all') return arr;
+  return arr.filter(p => {
+    const a = actions[p.paperId] || {};
+    if (status === 'liked')  return !!a.liked;
+    if (status === 'saved')  return !!a.saved;
+    if (status === 'hidden') return !!a.hidden;
+    if (status === 'unread') return !seenIds.has(p.paperId);
+    return true;
+  });
+}
+
+const actionPapers = [
+  { paperId: 'x1', title: 'Paper 1' },
+  { paperId: 'x2', title: 'Paper 2' },
+  { paperId: 'x3', title: 'Paper 3' },
+];
+const testActions = {
+  x1: { liked: true, saved: false, hidden: false },
+  x2: { liked: false, saved: true, hidden: false },
+  x3: { liked: false, saved: false, hidden: true },
+};
+const testSeenIds = new Set(['x1', 'x2']); // x3 is unread
+
+test('Status Filter', 'status=all returns all papers', () => {
+  assertLength(applyStatusFilter(actionPapers, 'all', testActions, testSeenIds), 3, 'all status = all papers');
+});
+
+test('Status Filter', 'status=liked returns only liked papers', () => {
+  const res = applyStatusFilter(actionPapers, 'liked', testActions, testSeenIds);
+  assertLength(res, 1, 'one liked paper');
+  assertEqual(res[0].paperId, 'x1', 'correct paper');
+});
+
+test('Status Filter', 'status=saved returns only saved papers', () => {
+  const res = applyStatusFilter(actionPapers, 'saved', testActions, testSeenIds);
+  assertLength(res, 1, 'one saved paper');
+  assertEqual(res[0].paperId, 'x2', 'correct paper');
+});
+
+test('Status Filter', 'status=hidden returns only hidden papers', () => {
+  const res = applyStatusFilter(actionPapers, 'hidden', testActions, testSeenIds);
+  assertLength(res, 1, 'one hidden paper');
+  assertEqual(res[0].paperId, 'x3', 'correct paper');
+});
+
+test('Status Filter', 'status=unread returns papers not in seenIds', () => {
+  const res = applyStatusFilter(actionPapers, 'unread', testActions, testSeenIds);
+  assertLength(res, 1, 'one unread paper');
+  assertEqual(res[0].paperId, 'x3', 'x3 is unread');
+});
+
+test('Status Filter', 'signed-out: no action data shows all papers as unread', () => {
+  // With empty actions and empty seenIds, all papers are unread
+  const emptyActions = {};
+  const emptySeenIds = new Set();
+  const res = applyStatusFilter(actionPapers, 'unread', emptyActions, emptySeenIds);
+  assertLength(res, 3, 'all papers unread when no seen IDs');
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 9 — Sort order (applySortOrder)
+// ════════════════════════════════════════════════════════════
+
+function applySortOrder(arr, order) {
+  const a = arr.slice();
+  if (order === 'newest') {
+    return a.sort((x, y) => {
+      const dx = x.publicationDate || (x.year ? `${x.year}-12-31` : '0000-01-01');
+      const dy = y.publicationDate || (y.year ? `${y.year}-12-31` : '0000-01-01');
+      return dy.localeCompare(dx);
+    });
+  }
+  if (order === 'oldest') {
+    return a.sort((x, y) => {
+      const dx = x.publicationDate || (x.year ? `${x.year}-01-01` : '9999-12-31');
+      const dy = y.publicationDate || (y.year ? `${y.year}-01-01` : '9999-12-31');
+      return dx.localeCompare(dy);
+    });
+  }
+  if (order === 'relevance') return a.sort((x, y) => y.score - x.score);
+  if (order === 'cited')     return a.sort((x, y) => (y.citationCount || 0) - (x.citationCount || 0));
+  return a;
+}
+
+const sortablePapers = [
+  { paperId: 's1', score: 5, year: 2023, publicationDate: '2023-06-01', citationCount: 50  },
+  { paperId: 's2', score: 3, year: 2021, publicationDate: '2021-03-15', citationCount: 200 },
+  { paperId: 's3', score: 1, year: 2024, publicationDate: '2024-11-20', citationCount: 10  },
+];
+
+test('Sort Logic', 'newest sort puts most recent first', () => {
+  const res = applySortOrder(sortablePapers, 'newest');
+  assertEqual(res[0].paperId, 's3', 'most recent (2024) first');
+  assertEqual(res[2].paperId, 's2', 'oldest (2021) last');
+});
+
+test('Sort Logic', 'oldest sort puts earliest first', () => {
+  const res = applySortOrder(sortablePapers, 'oldest');
+  assertEqual(res[0].paperId, 's2', 'oldest (2021) first');
+  assertEqual(res[2].paperId, 's3', 'most recent (2024) last');
+});
+
+test('Sort Logic', 'relevance sort puts highest score first', () => {
+  const res = applySortOrder(sortablePapers, 'relevance');
+  assertEqual(res[0].paperId, 's1', 'score-5 first');
+  assertEqual(res[2].paperId, 's3', 'score-1 last');
+});
+
+test('Sort Logic', 'cited sort puts most cited first', () => {
+  const res = applySortOrder(sortablePapers, 'cited');
+  assertEqual(res[0].paperId, 's2', 'most cited (200) first');
+  assertEqual(res[2].paperId, 's3', 'least cited (10) last');
+});
+
+test('Sort Logic', 'sort does not mutate input array', () => {
+  const original = [...sortablePapers];
+  applySortOrder(sortablePapers, 'newest');
+  for (let i = 0; i < original.length; i++) {
+    assertEqual(sortablePapers[i].paperId, original[i].paperId, `input[${i}] should be unchanged`);
+  }
+});
+
+test('Sort Logic', 'unknown order returns array unchanged (copy)', () => {
+  const res = applySortOrder(sortablePapers, 'mystery');
+  assertLength(res, sortablePapers.length, 'same length');
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 10 — Search highlight (highlightSearchTerms)
+// ════════════════════════════════════════════════════════════
+
+function highlightSearchTerms(text, q) {
+  if (!q || !q.trim()) return text;
+  const escaped = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex   = new RegExp(escaped, 'gi');
+  return text.replace(regex, match => `<mark class="search-highlight">${match}</mark>`);
+}
+
+test('Highlight', 'empty query returns text unchanged', () => {
+  const text = 'Social robots in public spaces';
+  assertEqual(highlightSearchTerms(text, ''), text, 'empty query unchanged');
+});
+
+test('Highlight', 'null query returns text unchanged', () => {
+  const text = 'Social robots';
+  assertEqual(highlightSearchTerms(text, null), text, 'null query unchanged');
+});
+
+test('Highlight', 'matching term is wrapped in <mark>', () => {
+  const res = highlightSearchTerms('Social robots', 'robots');
+  assert(res.includes('<mark class="search-highlight">'), 'mark tag present');
+  assert(res.includes('</mark>'), 'closing mark present');
+});
+
+test('Highlight', 'highlight is case-insensitive', () => {
+  const res = highlightSearchTerms('Social Robots', 'robots');
+  assert(res.includes('<mark'), 'case-insensitive match highlighted');
+});
+
+test('Highlight', 'multiple occurrences are all highlighted', () => {
+  const res = highlightSearchTerms('robots and robots', 'robots');
+  const count = (res.match(/<mark/g) || []).length;
+  assertEqual(count, 2, 'two occurrences should be highlighted');
+});
+
+test('Highlight', 'pre-escaped HTML entities survive highlighting', () => {
+  // Input is already HTML-escaped. The function should not double-escape.
+  const escaped = 'A &lt;script&gt; tag';
+  const res = highlightSearchTerms(escaped, 'script');
+  // The entity &lt;script&gt; does contain the literal text "script" (after the semicolon/lt)
+  // so the mark should appear around "script" within the entity sequence
+  assert(!res.includes('<script>'), 'raw script tag should not appear');
+});
+
+test('Highlight', 'regex special chars in query do not throw', () => {
+  let threw = false;
+  try { highlightSearchTerms('test (robots)', '(robots)'); }
+  catch (e) { threw = true; }
+  assert(!threw, 'regex special chars should not throw');
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 11 — Pagination
+// ════════════════════════════════════════════════════════════
+
+const PAGE_SIZE_TEST = 20;
+
+function getPageSlice(papersArr, pageIdx) {
+  return papersArr.slice(0, (pageIdx + 1) * PAGE_SIZE_TEST);
+}
+
+// Make N fake papers
+function makePapers(n) {
+  return Array.from({ length: n }, (_, i) => ({ paperId: `paper-${i}`, title: `Paper ${i}` }));
+}
+
+test('Pagination', 'first page (pageIndex=0) shows PAGE_SIZE papers', () => {
+  const all = makePapers(50);
+  assertLength(getPageSlice(all, 0), PAGE_SIZE_TEST, 'first page = PAGE_SIZE');
+});
+
+test('Pagination', 'load more (pageIndex=1) shows 2*PAGE_SIZE papers', () => {
+  const all = makePapers(50);
+  assertLength(getPageSlice(all, 1), 2 * PAGE_SIZE_TEST, 'second page = 2*PAGE_SIZE');
+});
+
+test('Pagination', 'fewer than PAGE_SIZE papers shows all', () => {
+  const all = makePapers(7);
+  assertLength(getPageSlice(all, 0), 7, 'all 7 shown when fewer than PAGE_SIZE');
+});
+
+test('Pagination', 'load more does not exceed total paper count', () => {
+  const all = makePapers(25);
+  const slice = getPageSlice(all, 1); // would be 40, but only 25 exist
+  assertLength(slice, 25, 'capped at total count');
+});
+
+
 // ── Wire up the run button ───────────────────────────────────
 document.getElementById('runBtn').addEventListener('click', runAll);
 

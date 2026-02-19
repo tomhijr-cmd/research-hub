@@ -137,6 +137,17 @@
       line-height: 1;
     }
 
+    /* Plain text link button */
+    .btn-text {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 0.8rem;
+      padding: 4px 6px;
+      text-decoration: underline;
+      white-space: nowrap;
+    }
+
     /* Spinning animation for refresh button when loading */
     .btn-spinning { animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -323,7 +334,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       align-items: center;
     }
 
@@ -341,6 +352,208 @@
       font-size: 0.75rem;
     }
 
+    /* ── Search bar ── */
+    .search-bar-container {
+      margin-bottom: 12px;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      font-size: 0.9rem;
+      pointer-events: none;
+      color: var(--text-muted);
+    }
+
+    .search-input {
+      width: 100%;
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      padding: 9px 36px 9px 36px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .search-input:focus { border-color: var(--accent); }
+
+    .search-clear-btn {
+      position: absolute;
+      right: 8px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 4px 6px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .search-clear-btn:hover { color: var(--text); opacity: 1; }
+
+    /* Search highlight inside paper cards */
+    mark.search-highlight {
+      background: #fff176;
+      color: inherit;
+      border-radius: 2px;
+      padding: 0 1px;
+    }
+
+    [data-theme="dark"] mark.search-highlight {
+      background: #7a6d00;
+    }
+
+    /* ── Filter panel ── */
+    .filter-panel {
+      margin-bottom: 16px;
+    }
+
+    .filter-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    /* Small badge showing how many filters are active */
+    .filter-active-count {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 10px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 1px 6px;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    /* Active filter tag pills in the header row */
+    .active-filter-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .filter-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--accent-light);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 2px 8px 2px 10px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .filter-tag-remove {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 0.8rem;
+      padding: 0;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 0.6;
+    }
+
+    .filter-tag-remove:hover { opacity: 1; }
+
+    /* The collapsible body of the filter panel */
+    .filter-panel-body {
+      margin-top: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px 24px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 140px;
+    }
+
+    .filter-group-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .filter-check-row,
+    .filter-radio-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 6px;
+    }
+
+    /* Individual filter option labels */
+    .filter-option-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg);
+      color: var(--text);
+      user-select: none;
+      white-space: nowrap;
+      transition: background 0.12s, border-color 0.12s;
+    }
+
+    .filter-option-label input[type="checkbox"],
+    .filter-option-label input[type="radio"] {
+      display: none; /* we style the label itself as the control */
+    }
+
+    .filter-option-label:has(input:checked) {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .sort-select {
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+      outline: none;
+    }
+
+    .sort-select:focus { border-color: var(--accent); }
+
     /* ── Status / error messages ── */
     .status-bar {
       font-size: 0.8rem;
@@ -350,6 +563,65 @@
     }
 
     .status-bar.error { color: #c0392b; }
+
+    /* ── Feed header ── */
+    .feed-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 0.8rem;
+    }
+
+    .feed-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .feed-header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-muted);
+    }
+
+    .feed-count {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* Unread badge */
+    .unread-badge {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 10px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 1px 7px;
+    }
+
+    .feed-last-refreshed {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* "Show hidden" toggle label */
+    .toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      user-select: none;
+      color: var(--text-muted);
+    }
+
+    .toggle-label input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
 
     /* ── Paper Feed ── */
     .paper-feed {
@@ -365,10 +637,17 @@
       border-radius: var(--radius);
       padding: 20px 22px;
       box-shadow: var(--shadow);
-      transition: box-shadow 0.15s;
+      transition: box-shadow 0.15s, opacity 0.35s, transform 0.35s;
     }
 
     .paper-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+
+    /* Fading out on hide */
+    .paper-card--fading {
+      opacity: 0;
+      transform: translateY(-6px);
+      pointer-events: none;
+    }
 
     .paper-card-top {
       display: flex;
@@ -414,7 +693,17 @@
     .paper-meta {
       font-size: 0.78rem;
       color: var(--text-muted);
-      margin-bottom: 10px;
+      margin-bottom: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0 4px;
+      align-items: center;
+    }
+
+    /* Citation count in meta row */
+    .citation-count {
+      margin-left: 4px;
+      color: var(--text-muted);
     }
 
     .paper-abstract {
@@ -445,6 +734,80 @@
     }
 
     .expand-btn:hover { text-decoration: underline; opacity: 1; }
+
+    /* Keyword match tags under abstract */
+    .paper-keyword-tags {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .matched-kw-tag {
+      background: var(--accent-light);
+      color: var(--accent);
+      border-radius: 10px;
+      padding: 1px 8px;
+      font-size: 0.72rem;
+    }
+
+    /* ── Paper action buttons ── */
+    .paper-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 14px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+      user-select: none;
+    }
+
+    .action-btn:hover { opacity: 1; background: var(--tag-bg); color: var(--text); }
+
+    /* Active (toggled on) state */
+    .action-btn.active { color: #fff; border-color: transparent; }
+
+    .like-btn.active  { background: #e35; }
+    .save-btn.active  { background: var(--score-high); }
+    .hide-btn.active  { background: #888; }
+
+    /* Disabled when signed out */
+    .action-btn.disabled-action {
+      opacity: 0.35;
+      pointer-events: none;
+      cursor: default;
+    }
+
+    /* ── Pagination load-more ── */
+    .feed-load-more {
+      text-align: center;
+      padding: 8px 0 4px;
+    }
+
+    .feed-load-more button {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 9px 28px;
+      font-size: 0.85rem;
+      border-radius: var(--radius);
+    }
+
+    .feed-load-more button:hover { background: var(--tag-bg); opacity: 1; }
 
     /* ── Empty / loading states ── */
     .empty-state {
@@ -509,6 +872,7 @@
       .header-title h1 { font-size: 1.2rem; }
       .paper-card { padding: 16px; }
       .paper-title { font-size: 0.95rem; }
+      .filter-panel-body { gap: 12px; }
     }
   </style>
 </head>
@@ -562,6 +926,72 @@
   <!-- ── Active keyword tags shown in feed view ── -->
   <div class="active-keywords-bar" id="activeKeywordsBar"></div>
 
+  <!-- ── Search bar ── -->
+  <div class="search-bar-container" id="searchBarContainer">
+    <div class="search-input-wrapper">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" class="search-input" type="search"
+             placeholder="Search titles, abstracts, authors…" maxlength="200" />
+      <button id="searchClearBtn" class="search-clear-btn" style="display:none" aria-label="Clear search">✕</button>
+    </div>
+  </div>
+
+  <!-- ── Filter panel ── -->
+  <div id="filterPanel" class="filter-panel">
+    <div class="filter-panel-header">
+      <button id="filterToggleBtn" class="btn-secondary filter-toggle-btn">
+        ⚙ Filters <span id="filterActiveCount" class="filter-active-count" style="display:none"></span>
+      </button>
+      <div id="activeFilterTags" class="active-filter-tags"></div>
+      <button id="clearAllFiltersBtn" class="btn-text" style="display:none">Clear all</button>
+    </div>
+    <div id="filterPanelBody" class="filter-panel-body" style="display:none">
+      <div class="filter-group">
+        <label class="filter-group-label" for="sortSelect">Sort</label>
+        <select id="sortSelect" class="sort-select">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="relevance">Highest relevance</option>
+          <option value="cited">Most cited</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-group-label">Relevance</span>
+        <div id="scoreFilterGroup" class="filter-check-row"></div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-group-label">Date</span>
+        <div id="dateFilterGroup" class="filter-radio-row"></div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-group-label">Status</span>
+        <div id="statusFilterGroup" class="filter-radio-row"></div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-group-label">Keyword</span>
+        <div id="keywordFilterGroup" class="filter-check-row"></div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-group-label">Citations</span>
+        <div id="citationFilterGroup" class="filter-radio-row"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Feed header ── -->
+  <div id="feedHeader" class="feed-header">
+    <div class="feed-header-left">
+      <span id="feedCount" class="feed-count"></span>
+      <span id="unreadBadge" class="unread-badge" style="display:none"></span>
+    </div>
+    <div class="feed-header-right">
+      <span id="feedLastRefreshed" class="feed-last-refreshed"></span>
+      <label class="toggle-label">
+        <input type="checkbox" id="showHiddenToggle"> Show hidden
+      </label>
+    </div>
+  </div>
+
   <!-- ── Status line ── -->
   <div class="status-bar" id="statusBar"></div>
 
@@ -579,15 +1009,11 @@
 // ════════════════════════════════════════════════════════════
 //  Research Hub — HRI Paper Feed
 //  Single-file vanilla JS app. No frameworks, no build step.
-//  Keywords sync to Firestore when signed in; localStorage
-//  is kept for theme and health check state only.
+//  Keywords sync to Firestore when signed in.
+//  Paper actions (like/save/hide) stored in Firestore subcollection.
 // ════════════════════════════════════════════════════════════
 
 // ── Firebase setup ──────────────────────────────────────────
-//
-// firebaseConfig is safe to embed in client HTML — it's a project
-// identifier, not a secret. Security is enforced by Firestore Rules
-// (each user can only read/write their own document).
 
 const firebaseConfig = {
   apiKey:            'AIzaSyCGeXjURWaP02MdENQIR5wjQJdmapyAEPo',
@@ -608,17 +1034,16 @@ let currentUser = null;
 
 // ── Constants ──────────────────────────────────────────────
 
-const THEME_KEY      = 'researchhub_theme';
-const LAST_FETCH_KEY = 'researchhub_last_fetch'; // ISO timestamp of last successful fetch
-const HEALTH_KEY     = 'researchhub_health';     // last health check result {ok, msg, ts}
-const FETCH_TTL_MS   = 24 * 60 * 60 * 1000;     // 24 hours in ms — auto-refresh threshold
+const THEME_KEY       = 'researchhub_theme';
+const LAST_FETCH_KEY  = 'researchhub_last_fetch';
+const HEALTH_KEY      = 'researchhub_health';
+const SEEN_PAPERS_KEY = 'researchhub_seen_papers';
+const FETCH_TTL_MS    = 24 * 60 * 60 * 1000;
+const PAGE_SIZE       = 20;
 
-// Requests go to our proxy (/api/papers) which forwards them to Semantic Scholar
-// server-side, avoiding CORS/SSL issues in the browser.
 const API_BASE     = '/api/papers';
-const PAPERS_LIMIT = 30;  // max papers to fetch per search
+const PAPERS_LIMIT = 30;
 
-// Default keywords shown when signed out, or seeded on first sign-in
 const DEFAULT_KEYWORDS = [
   { text: 'social robots',          active: true },
   { text: 'human-robot interaction', active: true },
@@ -627,39 +1052,63 @@ const DEFAULT_KEYWORDS = [
   { text: 'non-humanoid robots',    active: true },
 ];
 
-// Fields we want from the API (reduces response size)
-const API_FIELDS = 'title,abstract,authors,year,externalIds,url';
+// Fields we request from Semantic Scholar — includes citationCount and publicationDate
+// so we can filter by citations and date ranges.
+const API_FIELDS = 'title,abstract,authors,year,publicationDate,externalIds,url,citationCount';
 
 
 // ── App State ──────────────────────────────────────────────
 
-let keywords = [];   // array of { text: string, active: boolean }
-let papers   = [];   // array of paper objects returned from API + our score
-let loading  = false;
+let keywords    = [];   // { text, active }[]
+let allPapers   = [];   // raw results per fetch — never mutated after set
+let papers      = [];   // derived filtered+sorted view of allPapers
+let loading     = false;
+
+let searchQuery = '';       // current live search string
+let searchTimer = null;     // debounce handle
+
+let filterState = {
+  scores:    [1, 2, 3, 4, 5],  // active score checkboxes
+  dateRange: 'all',             // 'all'|'7d'|'30d'|'90d'|'1y'
+  status:    'all',             // 'all'|'unread'|'liked'|'saved'|'hidden'
+  keywords:  [],                // [] = no keyword filter; strings = must match one
+  citations: 0,                 // minimum citation count: 0|10|50|100|500
+};
+
+let sortOrder  = 'newest';  // 'newest'|'oldest'|'relevance'|'cited'
+let pageIndex  = 0;
+
+// Cache of { [paperId]: { liked, saved, hidden } } loaded from Firestore
+let userActions = {};
+
+// Set of paperIds seen in a previous session (for unread badge)
+let seenPaperIds = new Set();
+
+// Whether to include hidden papers in the feed
+let showHidden = false;
 
 
 // ── Initialise ─────────────────────────────────────────────
 
 function init() {
-  // Render signed-out UI immediately (auth observer will update it once Firebase resolves)
   renderAuthUI();
-  loadKeywords();   // load defaults so the feed isn't blank while auth resolves
+  loadKeywords();
   loadTheme();
+  loadSeenPapers();
   bindEvents();
-  renderHealthBar(); // show last known health state immediately while loading
-  smartRefresh();    // fetch papers right away
+  renderFilterPanel();
+  renderHealthBar();
+  smartRefresh();
 }
 
 
 // ── Auth UI ─────────────────────────────────────────────────
 
-// Renders the correct auth widget into #authArea based on currentUser.
 function renderAuthUI() {
   const area = document.getElementById('authArea');
   if (!area) return;
 
   if (currentUser) {
-    // Signed in: show avatar + name + sign-out link
     const photo    = currentUser.photoURL;
     const name     = currentUser.displayName || currentUser.email || 'User';
     const initials = name.charAt(0).toUpperCase();
@@ -677,14 +1126,12 @@ function renderAuthUI() {
 
     document.getElementById('signOutBtn').addEventListener('click', signOut);
 
-    // Show add-keyword row, hide notice
     const row    = document.getElementById('addKeywordRow');
     const notice = document.getElementById('signinNotice');
     if (row)    row.classList.remove('disabled');
     if (notice) notice.style.display = 'none';
 
   } else {
-    // Signed out: show Google sign-in button
     area.innerHTML = `
       <button class="btn-signin" id="signInBtn">
         <svg width="16" height="16" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
@@ -698,7 +1145,6 @@ function renderAuthUI() {
 
     document.getElementById('signInBtn').addEventListener('click', signIn);
 
-    // Dim add-keyword row, show sign-in notice
     const row    = document.getElementById('addKeywordRow');
     const notice = document.getElementById('signinNotice');
     if (row)    row.classList.add('disabled');
@@ -706,7 +1152,6 @@ function renderAuthUI() {
   }
 }
 
-// Open Google sign-in popup
 function signIn() {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider).catch(err => {
@@ -714,7 +1159,6 @@ function signIn() {
   });
 }
 
-// Sign the user out
 function signOut() {
   auth.signOut().catch(err => {
     console.error('Sign-out error:', err);
@@ -722,33 +1166,27 @@ function signOut() {
 }
 
 
-// ── Firestore helpers ────────────────────────────────────────
+// ── Firestore: keywords ──────────────────────────────────────
 
-// Reference to the signed-in user's Firestore document
 function userDocRef() {
   return db.collection('users').doc(currentUser.uid);
 }
 
-// Load this user's keywords from Firestore.
-// On first sign-in (no document yet), seeds with DEFAULT_KEYWORDS.
 async function loadKeywordsFromFirestore() {
   try {
     const snap = await userDocRef().get();
     if (snap.exists && snap.data().keywords) {
       keywords = snap.data().keywords;
     } else {
-      // First time this user signs in — seed with defaults and save
       keywords = DEFAULT_KEYWORDS.map(k => ({ ...k }));
       await saveKeywordsToFirestore();
     }
   } catch (e) {
     console.error('Firestore load error:', e);
-    // Fall back to defaults so the app is still usable
     keywords = DEFAULT_KEYWORDS.map(k => ({ ...k }));
   }
 }
 
-// Save the current keywords array to Firestore (merge so other fields aren't overwritten)
 async function saveKeywordsToFirestore() {
   try {
     await userDocRef().set({ keywords }, { merge: true });
@@ -758,50 +1196,83 @@ async function saveKeywordsToFirestore() {
 }
 
 
+// ── Firestore: user actions ──────────────────────────────────
+// Actions are stored in a subcollection: users/{uid}/actions/{paperId}
+// Each doc: { liked: bool, saved: bool, hidden: bool, updatedAt: Timestamp }
+
+function userActionsRef() {
+  return db.collection('users').doc(currentUser.uid).collection('actions');
+}
+
+// Load all action docs for the current user into the userActions cache.
+async function loadUserActions() {
+  if (!currentUser) return;
+  try {
+    const snap = await userActionsRef().get();
+    userActions = {};
+    snap.forEach(doc => {
+      userActions[doc.id] = doc.data();
+    });
+    renderPapers(); // re-render with loaded actions
+  } catch (e) {
+    console.error('Error loading user actions:', e);
+  }
+}
+
+// Update one action field for a paper (merges with existing doc).
+async function saveUserAction(paperId, key, value) {
+  if (!currentUser) return;
+  userActions[paperId] = userActions[paperId] || {};
+  userActions[paperId][key] = value;
+  try {
+    await userActionsRef().doc(paperId).set(
+      { [key]: value, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+  } catch (e) {
+    console.error('Error saving user action:', e);
+  }
+}
+
+
 // ── Auth state observer ──────────────────────────────────────
-//
-// This is the central controller for sign-in / sign-out.
-// Fires once on page load (with the current auth state) and
-// again whenever the user signs in or out.
 
 auth.onAuthStateChanged(async (user) => {
   currentUser = user;
 
   if (user) {
-    // Signed in — load this user's keywords from Firestore
     await loadKeywordsFromFirestore();
+    await loadUserActions();
   } else {
-    // Signed out — reset to defaults (read-only view)
-    keywords = DEFAULT_KEYWORDS.map(k => ({ ...k }));
+    keywords    = DEFAULT_KEYWORDS.map(k => ({ ...k }));
+    userActions = {};
   }
 
   renderAuthUI();
   renderKeywordChips();
   renderActiveKeywordsBar();
+  renderFilterPanel(); // keyword filter group depends on active keywords
 
-  // Re-score any papers already on screen with the updated keyword set
-  if (papers.length > 0) {
-    papers = papers.map(p => ({ ...p, score: scorepaper(p) })).sort((a, b) => b.score - a.score);
+  // Re-score papers already on screen with the updated keyword set
+  if (allPapers.length > 0) {
+    allPapers = allPapers.map(p => ({ ...p, score: scorepaper(p) }));
+    papers    = applyFiltersAndSort(allPapers);
+    pageIndex = 0;
     renderPapers();
   }
 });
 
 
-// ── localStorage helpers ────────────────────────────────────
+// ── localStorage helpers ─────────────────────────────────────
 
-// Load keywords for the initial (pre-auth) render.
-// The auth observer will overwrite these once Firebase resolves.
 function loadKeywords() {
   keywords = DEFAULT_KEYWORDS.map(k => ({ ...k }));
 }
 
-// Save keywords: routes to Firestore when signed in, no-op when signed out.
-// (Signed-out users view a read-only feed — their changes are not persisted.)
 function saveKeywords() {
   if (currentUser) {
-    saveKeywordsToFirestore(); // async, runs in background
+    saveKeywordsToFirestore();
   }
-  // No localStorage save — keywords are owned by Firestore when signed in
 }
 
 function loadTheme() {
@@ -816,47 +1287,60 @@ function applyTheme(theme) {
 }
 
 
-// ── Smart refresh ───────────────────────────────────────────
-//
-// Always fetches papers on load (papers aren't cached in localStorage,
-// only the timestamp is). The "last updated" time is shown in the status
-// bar so you can see at a glance whether the feed is fresh.
+// ── Unread tracking ──────────────────────────────────────────
+// We store the IDs of papers seen in the last session in localStorage.
+// Papers in the current fetch that aren't in seenPaperIds are "new".
 
-function smartRefresh() {
-  fetchPapers(); // always fetch on load — server cache makes this fast
+function loadSeenPapers() {
+  try {
+    const raw = localStorage.getItem(SEEN_PAPERS_KEY);
+    if (raw) seenPaperIds = new Set(JSON.parse(raw));
+  } catch (e) {
+    seenPaperIds = new Set();
+  }
 }
 
-// Returns a human-friendly relative time string, e.g. "2 hours ago", "just now"
+// Save the current allPapers IDs as "seen" (capped at 500).
+function updateSeenPapers() {
+  const currentIds = allPapers.map(p => p.paperId).filter(Boolean);
+  // Merge with previous (keep old seen IDs, add new ones)
+  const merged = [...seenPaperIds, ...currentIds];
+  const capped  = merged.slice(-500);
+  try {
+    localStorage.setItem(SEEN_PAPERS_KEY, JSON.stringify(capped));
+  } catch (e) { /* quota exceeded — skip silently */ }
+  // Update the in-memory set to include just-seen papers
+  // so they won't be "unread" next session
+  // (we set it AFTER renderPapers so the badge shows this session's new papers)
+}
+
+
+// ── Smart refresh ─────────────────────────────────────────────
+
+function smartRefresh() {
+  fetchPapers();
+}
+
 function friendlyTime(date) {
-  const diff = Math.floor((Date.now() - date.getTime()) / 1000); // seconds
-  if (diff < 60)           return 'just now';
-  if (diff < 3600)         return `${Math.floor(diff / 60)} min ago`;
-  if (diff < 86400)        return `${Math.floor(diff / 3600)} hr ago`;
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (diff < 60)    return 'just now';
+  if (diff < 3600)  return `${Math.floor(diff / 60)} min ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 
-// ── Health check ────────────────────────────────────────────
-//
-// Runs once on app load (called from fetchPapers on success).
-// Checks that the API returned at least one valid paper and saves the result.
+// ── Health check ──────────────────────────────────────────────
 
 async function runHealthCheck() {
   const firstKeyword = activeKeywords()[0];
-  if (!firstKeyword) return; // nothing to check
+  if (!firstKeyword) return;
 
-  let ok  = false;
-  let msg = '';
-
+  let ok = false, msg = '';
   try {
-    const params = new URLSearchParams({
-      query:  firstKeyword,
-      fields: 'title,year',
-      limit:  1,
-    });
+    const params = new URLSearchParams({ query: firstKeyword, fields: 'title,year', limit: 1 });
     const res  = await fetch(`${API_BASE}?${params}`);
     const data = await res.json();
-
     if (res.status === 429 || (data.message && !data.data)) {
       msg = 'API rate-limited';
     } else if (!res.ok) {
@@ -866,21 +1350,16 @@ async function runHealthCheck() {
     } else if (!data.data[0].title) {
       msg = 'API returned malformed data';
     } else {
-      ok  = true;
-      msg = 'All systems good';
+      ok = true; msg = 'All systems good';
     }
   } catch (e) {
     msg = e.message === 'Failed to fetch' ? 'Cannot reach API' : e.message;
   }
-
-  // Save result to localStorage with timestamp
   const result = { ok, msg, ts: new Date().toISOString() };
   localStorage.setItem(HEALTH_KEY, JSON.stringify(result));
   renderHealthBar(result);
 }
 
-// Render the health bar in the footer.
-// If called with no argument, reads last saved result from localStorage.
 function renderHealthBar(result) {
   if (!result) {
     try {
@@ -889,10 +1368,8 @@ function renderHealthBar(result) {
       result = JSON.parse(saved);
     } catch (e) { return; }
   }
-
   const el = document.getElementById('healthBar');
   if (!el) return;
-
   const time = friendlyTime(new Date(result.ts));
   el.style.display = 'inline-block';
   el.className = 'health-bar ' + (result.ok ? 'ok' : 'error');
@@ -902,144 +1379,287 @@ function renderHealthBar(result) {
 }
 
 
-// ── Event binding ───────────────────────────────────────────
+// ── Event binding ─────────────────────────────────────────────
 
 function bindEvents() {
-  // Settings panel open/close
   document.getElementById('settingsToggle').addEventListener('click', () => {
     document.getElementById('settingsPanel').classList.toggle('open');
     renderKeywordChips();
   });
-
-  // Refresh button
   document.getElementById('refreshBtn').addEventListener('click', fetchPapers);
-
-  // Theme toggle
   document.getElementById('themeBtn').addEventListener('click', () => {
     const current = document.documentElement.getAttribute('data-theme');
     applyTheme(current === 'dark' ? 'light' : 'dark');
   });
-
-  // Add keyword on button click
   document.getElementById('addKeywordBtn').addEventListener('click', addKeyword);
-
-  // Add keyword on Enter key in input
   document.getElementById('newKeywordInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') addKeyword();
+  });
+
+  // Search
+  document.getElementById('searchInput').addEventListener('input', handleSearchInput);
+  document.getElementById('searchClearBtn').addEventListener('click', clearSearch);
+
+  // Filter panel toggle
+  document.getElementById('filterToggleBtn').addEventListener('click', () => {
+    const body = document.getElementById('filterPanelBody');
+    body.style.display = body.style.display === 'none' ? 'flex' : 'none';
+  });
+
+  // Clear all filters
+  document.getElementById('clearAllFiltersBtn').addEventListener('click', clearAllFilters);
+
+  // Sort select
+  document.getElementById('sortSelect').addEventListener('change', (e) => {
+    sortOrder = e.target.value;
+    applyAndRender();
+  });
+
+  // Show hidden toggle
+  document.getElementById('showHiddenToggle').addEventListener('change', (e) => {
+    showHidden = e.target.checked;
+    applyAndRender();
   });
 }
 
 
-// ── Keyword management ──────────────────────────────────────
+// ── Keyword management ────────────────────────────────────────
 
 function addKeyword() {
   const input = document.getElementById('newKeywordInput');
   const text  = input.value.trim().toLowerCase();
-
   if (!text) return;
-
-  // Don't add duplicates (case-insensitive)
-  if (keywords.some(k => k.text === text)) {
-    input.value = '';
-    return;
-  }
-
+  if (keywords.some(k => k.text === text)) { input.value = ''; return; }
   keywords.push({ text, active: true });
-  saveKeywords(); // saves to Firestore if signed in, no-op if signed out
+  saveKeywords();
   input.value = '';
   renderKeywordChips();
   renderActiveKeywordsBar();
-  fetchPapers(); // fetch papers for the new keyword set
+  renderKeywordFilterGroup(); // update filter panel
+  fetchPapers();
 }
 
 function removeKeyword(index) {
   keywords.splice(index, 1);
-  saveKeywords(); // saves to Firestore if signed in, no-op if signed out
+  saveKeywords();
   renderKeywordChips();
   renderActiveKeywordsBar();
-  fetchPapers(); // re-fetch with updated keyword set
+  renderKeywordFilterGroup();
+  fetchPapers();
 }
 
 function toggleKeyword(index) {
   keywords[index].active = !keywords[index].active;
-  saveKeywords(); // saves to Firestore if signed in, no-op if signed out
+  saveKeywords();
   renderKeywordChips();
   renderActiveKeywordsBar();
-  fetchPapers(); // re-fetch so the feed reflects the new active set
+  renderKeywordFilterGroup();
+  fetchPapers();
 }
 
-// Returns only active keywords
 function activeKeywords() {
   return keywords.filter(k => k.active).map(k => k.text);
 }
 
 
-// ── Relevance scoring ───────────────────────────────────────
-//
-// Score is 1–5 based on how many active keyword phrases appear
-// in the paper's title and abstract (title matches count double).
-// Returns an integer 1–5.
+// ── Relevance scoring ─────────────────────────────────────────
 
 function scorepaper(paper) {
-  const active  = activeKeywords();
+  const active = activeKeywords();
   if (active.length === 0) return 1;
 
   const title    = (paper.title    || '').toLowerCase();
   const abstract = (paper.abstract || '').toLowerCase();
-
   let matches = 0;
 
   for (const kw of active) {
     const kwLower = kw.toLowerCase();
-    if (title.includes(kwLower))    matches += 2; // title is more signal
+    if (title.includes(kwLower))    matches += 2;
     if (abstract.includes(kwLower)) matches += 1;
   }
 
-  // Normalise to 1–5 range
-  // Max possible = active.length * 3 (title + abstract + title double)
   const max   = active.length * 3;
   const ratio = matches / max;
 
-  if (ratio === 0)    return 1;
-  if (ratio < 0.1)    return 1;
-  if (ratio < 0.25)   return 2;
-  if (ratio < 0.5)    return 3;
-  if (ratio < 0.75)   return 4;
+  if (ratio === 0)   return 1;
+  if (ratio < 0.1)   return 1;
+  if (ratio < 0.25)  return 2;
+  if (ratio < 0.5)   return 3;
+  if (ratio < 0.75)  return 4;
   return 5;
 }
 
 
-// ── API fetch ───────────────────────────────────────────────
-//
-// Fetches papers from Semantic Scholar one keyword at a time,
-// with a short delay between requests to avoid rate limiting.
-// Results are merged and deduplicated by paperId, then scored.
-// Docs: https://api.semanticscholar.org/api-docs/
+// ════════════════════════════════════════════════════════════
+//  FILTER & SORT PIPELINE
+//  All pure functions — no DOM side effects.
+//  Input: allPapers[]  →  Output: filtered+sorted papers[]
+// ════════════════════════════════════════════════════════════
 
-// Fetch a single keyword query. Returns an array of paper objects,
-// or throws if the request fails or is rate-limited.
+// Master entry point: recompute papers[] from allPapers[], reset page, re-render.
+function applyAndRender() {
+  papers    = applyFiltersAndSort(allPapers);
+  pageIndex = 0;
+  renderPapers();
+}
+
+// Chains all 6 filter steps then sort. Returns a new array (never mutates input).
+function applyFiltersAndSort(arr) {
+  let result = arr.slice(); // shallow copy — safe because we never mutate paper objects
+  result = applySearchFilter(result, searchQuery);
+  result = applyScoreFilter(result, filterState.scores);
+  result = applyDateFilter(result, filterState.dateRange);
+  result = applyStatusFilter(result, filterState.status, userActions);
+  result = applyKeywordFilter(result, filterState.keywords);
+  result = applyCitationFilter(result, filterState.citations);
+  // Unless "show hidden" is on, remove hidden papers from the default view
+  if (!showHidden) {
+    result = result.filter(p => !userActions[p.paperId]?.hidden);
+  }
+  result = applySortOrder(result, sortOrder);
+  return result;
+}
+
+// Full-text search across title, abstract, authors (case-insensitive substring).
+function applySearchFilter(arr, q) {
+  if (!q || !q.trim()) return arr;
+  const term = q.trim().toLowerCase();
+  return arr.filter(p => {
+    const title    = (p.title    || '').toLowerCase();
+    const abstract = (p.abstract || '').toLowerCase();
+    const authors  = (p.authors  || []).map(a => (a.name || '').toLowerCase()).join(' ');
+    return title.includes(term) || abstract.includes(term) || authors.includes(term);
+  });
+}
+
+// Keep only papers whose score is in the allowed scores array.
+function applyScoreFilter(arr, scores) {
+  if (!scores || scores.length === 5) return arr; // all selected = no filter
+  return arr.filter(p => scores.includes(p.score));
+}
+
+// Filter by publication date using paper.publicationDate (YYYY-MM-DD).
+// Falls back to paper.year if publicationDate is absent.
+function applyDateFilter(arr, range) {
+  if (range === 'all') return arr;
+
+  const now = Date.now();
+  const cutoffMs = {
+    '7d':  7  * 24 * 60 * 60 * 1000,
+    '30d': 30 * 24 * 60 * 60 * 1000,
+    '90d': 90 * 24 * 60 * 60 * 1000,
+    '1y':  365 * 24 * 60 * 60 * 1000,
+  }[range];
+
+  if (!cutoffMs) return arr;
+  const cutoff = now - cutoffMs;
+
+  return arr.filter(p => {
+    // Prefer full date, fall back to year-only
+    const dateStr = p.publicationDate || (p.year ? `${p.year}-01-01` : null);
+    if (!dateStr) return false;
+    const ts = new Date(dateStr).getTime();
+    return !isNaN(ts) && ts >= cutoff;
+  });
+}
+
+// Filter by status: all / unread / liked / saved / hidden
+function applyStatusFilter(arr, status, actions) {
+  if (status === 'all') return arr;
+  return arr.filter(p => {
+    const a = actions[p.paperId] || {};
+    if (status === 'liked')  return !!a.liked;
+    if (status === 'saved')  return !!a.saved;
+    if (status === 'hidden') return !!a.hidden;
+    if (status === 'unread') return !seenPaperIds.has(p.paperId);
+    return true;
+  });
+}
+
+// Keep papers that match at least one of the selected keyword filters.
+// Empty array = no keyword filter (show all).
+function applyKeywordFilter(arr, kws) {
+  if (!kws || kws.length === 0) return arr;
+  const kwsLower = kws.map(k => k.toLowerCase());
+  return arr.filter(p => {
+    const text = ((p.title || '') + ' ' + (p.abstract || '')).toLowerCase();
+    return kwsLower.some(kw => text.includes(kw));
+  });
+}
+
+// Keep papers where citationCount >= min (undefined/null treated as 0).
+function applyCitationFilter(arr, min) {
+  if (!min || min === 0) return arr;
+  return arr.filter(p => (p.citationCount || 0) >= min);
+}
+
+// Sort a copy of the array by the given order. Does NOT mutate input.
+function applySortOrder(arr, order) {
+  const a = arr.slice();
+  if (order === 'newest') {
+    return a.sort((x, y) => {
+      const dx = x.publicationDate || (x.year ? `${x.year}-12-31` : '0000-01-01');
+      const dy = y.publicationDate || (y.year ? `${y.year}-12-31` : '0000-01-01');
+      return dy.localeCompare(dx);
+    });
+  }
+  if (order === 'oldest') {
+    return a.sort((x, y) => {
+      const dx = x.publicationDate || (x.year ? `${x.year}-01-01` : '9999-12-31');
+      const dy = y.publicationDate || (y.year ? `${y.year}-01-01` : '9999-12-31');
+      return dx.localeCompare(dy);
+    });
+  }
+  if (order === 'relevance') {
+    return a.sort((x, y) => y.score - x.score);
+  }
+  if (order === 'cited') {
+    return a.sort((x, y) => (y.citationCount || 0) - (x.citationCount || 0));
+  }
+  return a;
+}
+
+// Returns the active keyword phrases found in a paper's title+abstract.
+function getMatchedKeywords(paper) {
+  const active = activeKeywords();
+  if (!active.length) return [];
+  const text = ((paper.title || '') + ' ' + (paper.abstract || '')).toLowerCase();
+  return active.filter(kw => text.includes(kw.toLowerCase()));
+}
+
+// Wrap each occurrence of query in the pre-escaped text with <mark>.
+// IMPORTANT: text must already be HTML-escaped before calling this function.
+// We never inject user input as HTML — only hard-coded <mark> tags are inserted.
+function highlightSearchTerms(text, q) {
+  if (!q || !q.trim()) return text;
+  // Escape regex special characters so they're treated as literals
+  const escaped = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex   = new RegExp(escaped, 'gi');
+  return text.replace(regex, match => `<mark class="search-highlight">${match}</mark>`);
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  API FETCH
+// ════════════════════════════════════════════════════════════
+
 async function fetchOneKeyword(keyword) {
   const params = new URLSearchParams({
     query:  keyword,
     fields: API_FIELDS,
-    limit:  10,  // 10 per keyword × up to 5 keywords = up to 50 results
+    limit:  10,
   });
-
   const res  = await fetch(`${API_BASE}?${params}`);
   const data = await res.json();
-
-  // 429 = rate limited, 503 = API down
   if (res.status === 429 || (data.message && !data.data)) {
     throw new Error('Rate limited by Semantic Scholar. Wait 30 seconds and click Refresh.');
   }
   if (!res.ok) {
     throw new Error(`Semantic Scholar API error (${res.status}). Try again shortly.`);
   }
-
   return data.data || [];
 }
 
-// Small helper: wait ms milliseconds
 function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -1048,7 +1668,6 @@ async function fetchPapers() {
   if (loading) return;
 
   const active = activeKeywords();
-
   if (active.length === 0) {
     setStatus('No active keywords. Enable at least one keyword in settings.', true);
     return;
@@ -1060,15 +1679,12 @@ async function fetchPapers() {
   setRefreshSpinning(true);
 
   try {
-    const seen    = new Set();  // track paperIds to avoid duplicates
+    const seen    = new Set();
     const results = [];
 
-    // Fetch each keyword sequentially with a 500ms gap to stay under rate limits
     for (let i = 0; i < active.length; i++) {
       if (i > 0) await wait(500);
-
       setStatus(`Fetching papers… (${i + 1}/${active.length})`);
-
       try {
         const batch = await fetchOneKeyword(active[i]);
         for (const paper of batch) {
@@ -1078,31 +1694,41 @@ async function fetchPapers() {
           }
         }
       } catch (kwErr) {
-        // One keyword failed (e.g. rate limit) — skip it and continue with the rest
-        console.warn(`Skipping keyword "${active[i]}" due to error: ${kwErr.message}`);
+        console.warn(`Skipping keyword "${active[i]}": ${kwErr.message}`);
       }
     }
 
-    // Score and sort all collected papers
-    papers = results
-      .map(p => ({ ...p, score: scorepaper(p) }))
-      .sort((a, b) => b.score - a.score);
+    // Score all results and store as immutable allPapers
+    allPapers = results.map(p => ({ ...p, score: scorepaper(p) }));
 
-    if (papers.length === 0) {
+    // Apply filters and sort to derive the view
+    papers    = applyFiltersAndSort(allPapers);
+    pageIndex = 0;
+
+    if (allPapers.length === 0) {
       setStatus('No papers found. The API may be rate-limited — wait 30 seconds and click Refresh.', true);
     } else {
-      // Record timestamp of this successful fetch
       const now = new Date();
       localStorage.setItem(LAST_FETCH_KEY, now.toISOString());
-      setStatus(`Showing ${papers.length} papers — last updated ${now.toLocaleTimeString()}`);
-      // Run health check after a successful fetch (non-blocking, updates footer)
+      setStatus(''); // clear status; feed header shows count
       runHealthCheck();
     }
+
+    // Track unread BEFORE updating seen (so new papers show as unread this session)
     renderPapers();
+
+    // After rendering, mark current papers as seen for next session
+    updateSeenPapers();
+    // Update the in-memory seenPaperIds so they don't show as unread in this session
+    allPapers.forEach(p => { if (p.paperId) seenPaperIds.add(p.paperId); });
+
+    // Load user actions if signed in
+    if (currentUser) {
+      await loadUserActions(); // will call renderPapers() again with actions
+    }
 
   } catch (err) {
     console.error('Fetch error:', err);
-    // "Failed to fetch" here means the local server isn't running
     const msg = err.message === 'Failed to fetch'
       ? 'Could not reach local server. Make sure server.py is running.'
       : err.message;
@@ -1115,9 +1741,563 @@ async function fetchPapers() {
 }
 
 
-// ── Rendering helpers ───────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+//  SEARCH BAR
+// ════════════════════════════════════════════════════════════
 
-// Escape HTML to prevent XSS when inserting user-supplied or API text
+function handleSearchInput(e) {
+  const val = e.target.value;
+  const clearBtn = document.getElementById('searchClearBtn');
+  clearBtn.style.display = val ? 'block' : 'none';
+
+  // Debounce: wait 300ms after typing stops before filtering
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    searchQuery = val;
+    applyAndRender();
+  }, 300);
+}
+
+function clearSearch() {
+  searchQuery = '';
+  const input = document.getElementById('searchInput');
+  if (input) input.value = '';
+  document.getElementById('searchClearBtn').style.display = 'none';
+  applyAndRender();
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  FILTER PANEL
+// ════════════════════════════════════════════════════════════
+
+// Renders ALL filter groups from scratch.
+// Called on init and whenever keyword list changes.
+function renderFilterPanel() {
+  renderScoreFilterGroup();
+  renderDateFilterGroup();
+  renderStatusFilterGroup();
+  renderKeywordFilterGroup();
+  renderCitationFilterGroup();
+  renderActiveFilterTags();
+}
+
+function renderScoreFilterGroup() {
+  const el = document.getElementById('scoreFilterGroup');
+  if (!el) return;
+  el.innerHTML = [1, 2, 3, 4, 5].map(s => `
+    <label class="filter-option-label">
+      <input type="checkbox" value="${s}"
+             ${filterState.scores.includes(s) ? 'checked' : ''}
+             data-filter="score">
+      ★${s}
+    </label>
+  `).join('');
+
+  el.querySelectorAll('input[data-filter="score"]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const checked = [...el.querySelectorAll('input[data-filter="score"]')]
+        .filter(i => i.checked).map(i => Number(i.value));
+      filterState.scores = checked.length ? checked : [1, 2, 3, 4, 5];
+      renderActiveFilterTags();
+      applyAndRender();
+    });
+  });
+}
+
+function renderDateFilterGroup() {
+  const el = document.getElementById('dateFilterGroup');
+  if (!el) return;
+  const options = [
+    { val: 'all',  label: 'All time' },
+    { val: '7d',   label: 'Last 7 days' },
+    { val: '30d',  label: 'Last 30 days' },
+    { val: '90d',  label: 'Last 3 months' },
+    { val: '1y',   label: 'Last year' },
+  ];
+  el.innerHTML = options.map(o => `
+    <label class="filter-option-label">
+      <input type="radio" name="dateFilter" value="${o.val}"
+             ${filterState.dateRange === o.val ? 'checked' : ''}
+             data-filter="date">
+      ${o.label}
+    </label>
+  `).join('');
+
+  el.querySelectorAll('input[data-filter="date"]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      filterState.dateRange = inp.value;
+      renderActiveFilterTags();
+      applyAndRender();
+    });
+  });
+}
+
+function renderStatusFilterGroup() {
+  const el = document.getElementById('statusFilterGroup');
+  if (!el) return;
+  const options = [
+    { val: 'all',    label: 'All' },
+    { val: 'unread', label: 'Unread' },
+    { val: 'liked',  label: '❤ Liked' },
+    { val: 'saved',  label: '🔖 Saved' },
+    { val: 'hidden', label: '🙈 Hidden' },
+  ];
+  el.innerHTML = options.map(o => `
+    <label class="filter-option-label">
+      <input type="radio" name="statusFilter" value="${o.val}"
+             ${filterState.status === o.val ? 'checked' : ''}
+             data-filter="status">
+      ${o.label}
+    </label>
+  `).join('');
+
+  el.querySelectorAll('input[data-filter="status"]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      filterState.status = inp.value;
+      renderActiveFilterTags();
+      applyAndRender();
+    });
+  });
+}
+
+// Re-renders only the keyword filter group (called when keywords change).
+function renderKeywordFilterGroup() {
+  const el = document.getElementById('keywordFilterGroup');
+  if (!el) return;
+  const active = activeKeywords();
+  if (active.length === 0) {
+    el.innerHTML = '<span style="font-size:0.75rem; color:var(--text-muted)">No active keywords</span>';
+    return;
+  }
+  el.innerHTML = active.map(kw => `
+    <label class="filter-option-label">
+      <input type="checkbox" value="${esc(kw)}"
+             ${filterState.keywords.includes(kw) ? 'checked' : ''}
+             data-filter="keyword">
+      ${esc(kw)}
+    </label>
+  `).join('');
+
+  el.querySelectorAll('input[data-filter="keyword"]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      filterState.keywords = [...el.querySelectorAll('input[data-filter="keyword"]')]
+        .filter(i => i.checked).map(i => i.value);
+      renderActiveFilterTags();
+      applyAndRender();
+    });
+  });
+}
+
+function renderCitationFilterGroup() {
+  const el = document.getElementById('citationFilterGroup');
+  if (!el) return;
+  const options = [
+    { val: 0,   label: 'Any' },
+    { val: 10,  label: '≥10' },
+    { val: 50,  label: '≥50' },
+    { val: 100, label: '≥100' },
+    { val: 500, label: '≥500' },
+  ];
+  el.innerHTML = options.map(o => `
+    <label class="filter-option-label">
+      <input type="radio" name="citationFilter" value="${o.val}"
+             ${filterState.citations === o.val ? 'checked' : ''}
+             data-filter="citation">
+      ${o.label}
+    </label>
+  `).join('');
+
+  el.querySelectorAll('input[data-filter="citation"]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      filterState.citations = Number(inp.value);
+      renderActiveFilterTags();
+      applyAndRender();
+    });
+  });
+}
+
+// Build the active filter tag data: each non-default filter gets a pill.
+function buildActiveFilterTags() {
+  const tags = [];
+
+  if (searchQuery) {
+    tags.push({ label: `Search: "${searchQuery}"`, clearFn: clearSearch });
+  }
+  if (filterState.scores.length < 5) {
+    const label = 'Score: ' + filterState.scores.map(s => '★' + s).join(' ');
+    tags.push({ label, clearFn: () => {
+      filterState.scores = [1, 2, 3, 4, 5];
+      renderFilterPanel(); applyAndRender();
+    }});
+  }
+  if (filterState.dateRange !== 'all') {
+    const labels = { '7d': 'Last 7 days', '30d': 'Last 30 days', '90d': 'Last 3 months', '1y': 'Last year' };
+    tags.push({ label: labels[filterState.dateRange] || filterState.dateRange, clearFn: () => {
+      filterState.dateRange = 'all'; renderFilterPanel(); applyAndRender();
+    }});
+  }
+  if (filterState.status !== 'all') {
+    tags.push({ label: `Status: ${filterState.status}`, clearFn: () => {
+      filterState.status = 'all'; renderFilterPanel(); applyAndRender();
+    }});
+  }
+  filterState.keywords.forEach(kw => {
+    tags.push({ label: `Keyword: ${kw}`, clearFn: () => {
+      filterState.keywords = filterState.keywords.filter(k => k !== kw);
+      renderFilterPanel(); applyAndRender();
+    }});
+  });
+  if (filterState.citations > 0) {
+    tags.push({ label: `Citations ≥${filterState.citations}`, clearFn: () => {
+      filterState.citations = 0; renderFilterPanel(); applyAndRender();
+    }});
+  }
+  return tags;
+}
+
+// Render the pill tags row and update badge count.
+function renderActiveFilterTags() {
+  const container = document.getElementById('activeFilterTags');
+  const badge     = document.getElementById('filterActiveCount');
+  const clearBtn  = document.getElementById('clearAllFiltersBtn');
+  if (!container) return;
+
+  const tags = buildActiveFilterTags();
+
+  if (tags.length === 0) {
+    container.innerHTML = '';
+    badge.style.display    = 'none';
+    clearBtn.style.display = 'none';
+    return;
+  }
+
+  badge.textContent  = tags.length;
+  badge.style.display    = 'inline-block';
+  clearBtn.style.display = 'inline-block';
+
+  container.innerHTML = tags.map((t, i) => `
+    <span class="filter-tag">
+      ${esc(t.label)}
+      <button class="filter-tag-remove" data-tag-idx="${i}" aria-label="Remove filter">×</button>
+    </span>
+  `).join('');
+
+  container.querySelectorAll('.filter-tag-remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      tags[parseInt(btn.dataset.tagIdx)].clearFn();
+    });
+  });
+}
+
+// Reset all filters and search to defaults.
+function clearAllFilters() {
+  filterState = { scores: [1,2,3,4,5], dateRange: 'all', status: 'all', keywords: [], citations: 0 };
+  searchQuery = '';
+  sortOrder   = 'newest';
+  pageIndex   = 0;
+  const input = document.getElementById('searchInput');
+  if (input) input.value = '';
+  document.getElementById('searchClearBtn').style.display = 'none';
+  document.getElementById('sortSelect').value = 'newest';
+  renderFilterPanel();
+  applyAndRender();
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  USER ACTIONS: Like / Save / Hide / Copy citation
+// ════════════════════════════════════════════════════════════
+
+// Route an action button click to the correct handler.
+function handlePaperAction(paperId, action) {
+  if (!currentUser) return; // buttons are disabled when signed out
+
+  if (action === 'like') {
+    const current = userActions[paperId]?.liked || false;
+    saveUserAction(paperId, 'liked', !current);
+    updateCardActionDisplay(paperId);
+    // If we're filtering by liked, re-render
+    if (filterState.status === 'liked') applyAndRender();
+  } else if (action === 'save') {
+    const current = userActions[paperId]?.saved || false;
+    saveUserAction(paperId, 'saved', !current);
+    updateCardActionDisplay(paperId);
+    if (filterState.status === 'saved') applyAndRender();
+  } else if (action === 'hide') {
+    const current = userActions[paperId]?.hidden || false;
+    const newVal  = !current;
+    saveUserAction(paperId, 'hidden', newVal);
+    if (newVal && !showHidden) {
+      // Fade out then remove
+      const card = document.querySelector(`[data-paperid="${paperId}"]`);
+      if (card) {
+        card.classList.add('paper-card--fading');
+        setTimeout(() => applyAndRender(), 380);
+      }
+    } else {
+      updateCardActionDisplay(paperId);
+      if (filterState.status === 'hidden') applyAndRender();
+    }
+  } else if (action === 'copy') {
+    copyCitation(paperId);
+  }
+}
+
+// Update just the action buttons of one card without re-rendering the whole feed.
+function updateCardActionDisplay(paperId) {
+  const card = document.querySelector(`[data-paperid="${paperId}"]`);
+  if (!card) return;
+  const a = userActions[paperId] || {};
+  const isSignedIn = !!currentUser;
+
+  const likeBtn = card.querySelector('.like-btn');
+  const saveBtn = card.querySelector('.save-btn');
+  const hideBtn = card.querySelector('.hide-btn');
+
+  if (likeBtn) {
+    likeBtn.classList.toggle('active', !!a.liked);
+    likeBtn.textContent = a.liked ? '❤ Liked' : '♡ Like';
+  }
+  if (saveBtn) {
+    saveBtn.classList.toggle('active', !!a.saved);
+    saveBtn.textContent = a.saved ? '🔖 Saved' : '🔖 Save';
+  }
+  if (hideBtn) {
+    hideBtn.classList.toggle('active', !!a.hidden);
+    hideBtn.textContent = a.hidden ? '👁 Unhide' : '🙈 Hide';
+  }
+}
+
+// Format an APA-ish citation and copy to clipboard.
+function copyCitation(paperId) {
+  const paper = allPapers.find(p => p.paperId === paperId);
+  if (!paper) return;
+
+  const authors = (paper.authors || []).map(a => a.name).join(', ') || 'Unknown authors';
+  const year    = paper.year || 'n.d.';
+  const title   = paper.title || 'Untitled';
+  const doi     = paper.externalIds?.DOI;
+  const url     = doi ? `https://doi.org/${doi}` : paper.url || '';
+  const citation = `${authors} (${year}). ${title}.${url ? ' ' + url : ''}`;
+
+  navigator.clipboard.writeText(citation).then(() => {
+    const btn = document.querySelector(`[data-paperid="${paperId}"] .copy-btn`);
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => { btn.textContent = orig; }, 2000);
+    }
+  }).catch(err => {
+    console.error('Clipboard error:', err);
+  });
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  RENDERING
+// ════════════════════════════════════════════════════════════
+
+// Update the feed header: paper count, unread badge, last refresh time.
+function renderFeedHeader() {
+  const countEl    = document.getElementById('feedCount');
+  const badgeEl    = document.getElementById('unreadBadge');
+  const refreshEl  = document.getElementById('feedLastRefreshed');
+
+  if (countEl) {
+    countEl.textContent = papers.length === 0
+      ? 'No papers'
+      : `${papers.length} paper${papers.length !== 1 ? 's' : ''}`;
+  }
+
+  // Unread = papers in current allPapers that weren't in last session's seenPaperIds
+  const unreadCount = allPapers.filter(p => p.paperId && !seenPaperIds.has(p.paperId)).length;
+  // (seenPaperIds is updated AFTER render, so new papers show as unread in this session)
+  if (badgeEl) {
+    if (unreadCount > 0) {
+      badgeEl.textContent  = `${unreadCount} new`;
+      badgeEl.style.display = 'inline-block';
+    } else {
+      badgeEl.style.display = 'none';
+    }
+  }
+
+  if (refreshEl) {
+    try {
+      const ts = localStorage.getItem(LAST_FETCH_KEY);
+      refreshEl.textContent = ts ? `Updated ${friendlyTime(new Date(ts))}` : '';
+    } catch (e) { refreshEl.textContent = ''; }
+  }
+}
+
+// Build the HTML string for one paper card.
+function buildPaperCardHtml(paper) {
+  const paperId  = paper.paperId || '';
+  const paperUrl = paper.url ||
+    (paper.externalIds?.DOI
+      ? `https://doi.org/${paper.externalIds.DOI}`
+      : `https://www.semanticscholar.org/paper/${paperId}`);
+
+  const authors = (paper.authors || []).map(a => a.name);
+  const authorStr = authors.length > 4
+    ? authors.slice(0, 4).join(', ') + ' et al.'
+    : authors.join(', ') || 'Unknown authors';
+
+  const year = paper.publicationDate
+    ? paper.publicationDate.slice(0, 7)   // "YYYY-MM"
+    : (paper.year || 'Year unknown');
+
+  const scoreClass = paper.score >= 4 ? 'high' : paper.score >= 2 ? 'mid' : '';
+
+  // Citation count
+  const citeStr = (typeof paper.citationCount === 'number')
+    ? `<span class="citation-count" title="Citations">📄 ${paper.citationCount}</span>`
+    : '';
+
+  // Abstract with optional search highlight (input is pre-escaped → safe)
+  const rawAbstract = paper.abstract || '';
+  const abstractHtml = rawAbstract
+    ? highlightSearchTerms(esc(rawAbstract), searchQuery)
+    : '<em style="color:var(--text-muted)">No abstract available.</em>';
+
+  // Title with optional search highlight
+  const titleHtml = highlightSearchTerms(esc(paper.title || 'Untitled'), searchQuery);
+
+  // Matched keyword tags
+  const matched   = getMatchedKeywords(paper);
+  const kwTagsHtml = matched.length
+    ? `<div class="paper-keyword-tags">${matched.map(k => `<span class="matched-kw-tag">${esc(k)}</span>`).join('')}</div>`
+    : '';
+
+  // Whether this paper has been seen before
+  const isUnread = paperId && !seenPaperIds.has(paperId);
+
+  // Action buttons — disabled when signed out
+  const a          = userActions[paperId] || {};
+  const disabledCls = currentUser ? '' : ' disabled-action';
+  const likedLbl   = a.liked  ? '❤ Liked'    : '♡ Like';
+  const savedLbl   = a.saved  ? '🔖 Saved'   : '🔖 Save';
+  const hiddenLbl  = a.hidden ? '👁 Unhide'  : '🙈 Hide';
+
+  return `
+    <article class="paper-card${isUnread ? ' paper-card--unread' : ''}" data-paperid="${esc(paperId)}">
+      <div class="paper-card-top">
+        <h2 class="paper-title">
+          <a href="${esc(paperUrl)}" target="_blank" rel="noopener">
+            ${titleHtml}
+          </a>
+        </h2>
+        <span class="score-badge ${scoreClass}" title="Relevance score based on keyword matches">
+          ★ ${paper.score}/5
+        </span>
+      </div>
+      <div class="paper-meta">
+        ${esc(authorStr)} &nbsp;·&nbsp; ${esc(String(year))} ${citeStr}
+      </div>
+      <p class="paper-abstract" id="abstract-${esc(paperId)}">${abstractHtml}</p>
+      ${rawAbstract.length > 300
+        ? `<button class="expand-btn" data-paperid="${esc(paperId)}">Show more</button>`
+        : ''}
+      ${kwTagsHtml}
+      <div class="paper-actions">
+        <button class="action-btn like-btn${a.liked ? ' active' : ''}${disabledCls}"
+                data-paperid="${esc(paperId)}" data-action="like">${likedLbl}</button>
+        <button class="action-btn save-btn${a.saved ? ' active' : ''}${disabledCls}"
+                data-paperid="${esc(paperId)}" data-action="save">${savedLbl}</button>
+        <button class="action-btn hide-btn${a.hidden ? ' active' : ''}${disabledCls}"
+                data-paperid="${esc(paperId)}" data-action="hide">${hiddenLbl}</button>
+        <button class="action-btn copy-btn"
+                data-paperid="${esc(paperId)}" data-action="copy">📋 Cite</button>
+      </div>
+    </article>
+  `;
+}
+
+// Render the current page slice of papers[] into #paperFeed.
+function renderPapers() {
+  renderFeedHeader();
+  const feed = document.getElementById('paperFeed');
+
+  if (papers.length === 0) {
+    feed.innerHTML = renderEmptyState();
+    return;
+  }
+
+  // Show a paginated slice: first (pageIndex+1)*PAGE_SIZE papers
+  const slice    = papers.slice(0, (pageIndex + 1) * PAGE_SIZE);
+  const hasMore  = papers.length > slice.length;
+
+  feed.innerHTML = slice.map(p => buildPaperCardHtml(p)).join('') +
+    (hasMore ? `
+      <div class="feed-load-more">
+        <button id="loadMoreBtn">Load more (${papers.length - slice.length} remaining)</button>
+      </div>
+    ` : '');
+
+  // Bind delegated events
+  bindCardActions();
+
+  // Wire up expand buttons
+  feed.querySelectorAll('.expand-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pid   = btn.dataset.paperid;
+      const absEl = document.getElementById(`abstract-${pid}`);
+      if (!absEl) return;
+      const expanded = absEl.classList.toggle('expanded');
+      btn.textContent = expanded ? 'Show less' : 'Show more';
+    });
+  });
+
+  // Load more button
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener('click', loadMorePapers);
+  }
+}
+
+// Returns an appropriate empty-state HTML string.
+function renderEmptyState() {
+  if (allPapers.length === 0) {
+    return `<div class="empty-state">
+      <div class="icon">📄</div>
+      No papers found for these keywords. Try adding broader terms or click Refresh.
+    </div>`;
+  }
+  // Papers exist but filters removed all of them
+  return `<div class="empty-state">
+    <div class="icon">🔍</div>
+    No papers match the current filters.
+    <br><button class="btn-text" onclick="clearAllFilters()" style="margin-top:8px">Clear filters</button>
+  </div>`;
+}
+
+// Single delegated listener for all action buttons in the feed.
+function bindCardActions() {
+  const feed = document.getElementById('paperFeed');
+  // Remove any existing listener by replacing the node (simplest approach for a full re-render)
+  // We use a named function stored on the element to avoid double-binding.
+  if (feed._actionListener) {
+    feed.removeEventListener('click', feed._actionListener);
+  }
+  feed._actionListener = (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const { paperid, action } = btn.dataset;
+    if (paperid && action) handlePaperAction(paperid, action);
+  };
+  feed.addEventListener('click', feed._actionListener);
+}
+
+// Increment pageIndex and append the next slice (no scroll reset).
+function loadMorePapers() {
+  pageIndex++;
+  renderPapers();
+}
+
+
+// ── Rendering helpers ─────────────────────────────────────────
+
 function esc(str) {
   return (str || '')
     .replace(/&/g, '&amp;')
@@ -1136,7 +2316,6 @@ function setRefreshSpinning(on) {
   document.getElementById('refreshIcon').className = on ? 'btn-spinning' : '';
 }
 
-// Show 4 skeleton placeholder cards while loading
 function showSkeletons() {
   const feed = document.getElementById('paperFeed');
   feed.innerHTML = Array.from({ length: 4 }, () => `
@@ -1151,7 +2330,7 @@ function showSkeletons() {
 }
 
 
-// ── Render: keyword chips in settings panel ─────────────────
+// ── Render: keyword chips in settings panel ───────────────────
 
 function renderKeywordChips() {
   const list = document.getElementById('keywordList');
@@ -1176,13 +2355,11 @@ function renderKeywordChips() {
     </span>
   `).join('');
 
-  // Toggle active/off on chip click (but not on the × button)
   list.querySelectorAll('.keyword-chip').forEach(chip => {
     chip.addEventListener('click', (e) => {
       if (e.target.classList.contains('remove-btn')) return;
       toggleKeyword(parseInt(chip.dataset.index));
     });
-    // Keyboard accessibility
     chip.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
@@ -1191,7 +2368,6 @@ function renderKeywordChips() {
     });
   });
 
-  // Remove keyword on × click
   list.querySelectorAll('.remove-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1201,7 +2377,7 @@ function renderKeywordChips() {
 }
 
 
-// ── Render: active keyword tags below header ────────────────
+// ── Render: active keyword tags below header ──────────────────
 
 function renderActiveKeywordsBar() {
   const bar    = document.getElementById('activeKeywordsBar');
@@ -1218,80 +2394,7 @@ function renderActiveKeywordsBar() {
 }
 
 
-// ── Render: paper cards ─────────────────────────────────────
-
-function renderPapers() {
-  const feed = document.getElementById('paperFeed');
-
-  if (papers.length === 0) {
-    feed.innerHTML = `
-      <div class="empty-state">
-        <div class="icon">📄</div>
-        No papers found for these keywords. Try adding broader terms.
-      </div>`;
-    return;
-  }
-
-  feed.innerHTML = papers.map((paper, idx) => {
-    // Build a URL: prefer the paper's own URL, fall back to S2 search
-    const paperUrl = paper.url ||
-      (paper.externalIds?.DOI
-        ? `https://doi.org/${paper.externalIds.DOI}`
-        : `https://www.semanticscholar.org/paper/${paper.paperId || ''}`);
-
-    // Format authors: show up to 4, then "et al."
-    const authors = (paper.authors || []).map(a => a.name);
-    const authorStr = authors.length > 4
-      ? authors.slice(0, 4).join(', ') + ' et al.'
-      : authors.join(', ') || 'Unknown authors';
-
-    const year = paper.year || 'Year unknown';
-
-    // Score badge CSS class
-    const scoreClass = paper.score >= 4 ? 'high' : paper.score >= 2 ? 'mid' : '';
-
-    // Abstract: show even if empty
-    const abstract = paper.abstract
-      ? esc(paper.abstract)
-      : '<em style="color:var(--text-muted)">No abstract available.</em>';
-
-    return `
-      <article class="paper-card" data-idx="${idx}">
-        <div class="paper-card-top">
-          <h2 class="paper-title">
-            <a href="${esc(paperUrl)}" target="_blank" rel="noopener">
-              ${esc(paper.title)}
-            </a>
-          </h2>
-          <span class="score-badge ${scoreClass}"
-                title="Relevance score based on keyword matches">
-            ★ ${paper.score}/5
-          </span>
-        </div>
-        <div class="paper-meta">
-          ${esc(authorStr)} &nbsp;·&nbsp; ${esc(String(year))}
-        </div>
-        <p class="paper-abstract" id="abstract-${idx}">${abstract}</p>
-        ${paper.abstract && paper.abstract.length > 300
-          ? `<button class="expand-btn" data-idx="${idx}">Show more</button>`
-          : ''}
-      </article>
-    `;
-  }).join('');
-
-  // Wire up expand/collapse buttons
-  feed.querySelectorAll('.expand-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx      = btn.dataset.idx;
-      const absEl    = document.getElementById(`abstract-${idx}`);
-      const expanded = absEl.classList.toggle('expanded');
-      btn.textContent = expanded ? 'Show less' : 'Show more';
-    });
-  });
-}
-
-
-// ── Start the app ───────────────────────────────────────────
+// ── Start the app ─────────────────────────────────────────────
 init();
 renderKeywordChips();
 renderActiveKeywordsBar();
