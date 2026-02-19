@@ -805,6 +805,126 @@
       .field-tags { display: none; }
     }
 
+    /* ── Paper card badges (score + wildcard) ── */
+    .paper-card-badges {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    /* ── Wildcard / Explore badge ── */
+    .wildcard-badge {
+      display: inline-block;
+      background: #e8f4f8;
+      color: #1a6a8a;
+      border-radius: 10px;
+      padding: 2px 8px;
+      font-size: 0.70rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .wildcard-badge {
+      background: #0d2d3a;
+      color: #5bbcde;
+    }
+    .paper-card--wildcard {
+      border-left: 3px solid #5bbcde;
+    }
+
+    /* ── Research Profile section ── */
+    .research-profile {
+      margin-top: 28px;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+    }
+    .research-profile-inner {}
+    .profile-heading {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0 0 4px;
+      color: var(--text);
+    }
+    .profile-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin: 0 0 16px;
+    }
+    .profile-section {
+      margin-bottom: 16px;
+    }
+    .profile-section-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin: 0 0 4px;
+      color: var(--text);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .profile-hint {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin: 0 0 8px;
+    }
+    .profile-empty {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    .profile-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .profile-topic-chip {
+      background: var(--tag-off);
+      color: var(--tag-off-text);
+      border-radius: 10px;
+      padding: 2px 10px;
+      font-size: 0.75rem;
+    }
+
+    /* ── Learned keyword chips (with × remove button) ── */
+    .learned-kw-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .learned-kw-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #e8f0fe;
+      color: #1a3a8a;
+      border-radius: 10px;
+      padding: 2px 8px 2px 10px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    [data-theme="dark"] .learned-kw-chip {
+      background: #1a2a4a;
+      color: #7aabde;
+    }
+    .remove-learned-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: inherit;
+      opacity: 0.6;
+      font-size: 0.85rem;
+      line-height: 1;
+      padding: 0 1px;
+    }
+    .remove-learned-btn:hover { opacity: 1; }
+
+    /* ── Reset profile button ── */
+    .btn-reset-profile {
+      margin-top: 8px;
+      font-size: 0.78rem;
+      padding: 5px 12px;
+    }
+
     .paper-abstract {
       font-size: 0.88rem;
       color: var(--text);
@@ -1020,6 +1140,9 @@
       <input type="text" id="newKeywordInput" placeholder="Add a keyword…" maxlength="80" aria-label="New keyword" />
       <button class="btn-primary" id="addKeywordBtn">Add</button>
     </div>
+
+    <!-- Research Profile — rendered by renderResearchProfile() when signed in -->
+    <div id="researchProfile" class="research-profile" style="display:none;"></div>
   </section>
 
   <!-- ── Active keyword tags shown in feed view ── -->
@@ -1165,6 +1288,21 @@ const PAGE_SIZE       = 20;
 const API_BASE     = '/api/papers';
 const PAPERS_LIMIT = 30;
 
+// Stop words excluded when extracting topic keywords from paper titles/abstracts.
+const STOP_WORDS = new Set([
+  'the','a','an','and','or','but','in','on','at','to','for','of','with','by',
+  'from','as','is','are','was','were','be','been','being','have','has','had',
+  'do','does','did','will','would','could','should','may','might','this','that',
+  'these','those','it','its','we','our','they','their','study','paper','research',
+  'using','used','results','show','shows','showed','approach','method','methods',
+  'system','based','new','also','can','two','one','both','between','more','most',
+  'such','than','when','which','who','how','data','model','propose','proposed',
+  'present','demonstrate','find','found','analysis','evaluate','evaluation',
+  'provide','different','task','tasks','work','works','high','large','small',
+  'number','recent','review','effect','effects','related','across','within',
+  'toward','through','during','while','where','other','each','into','over',
+]);
+
 const DEFAULT_KEYWORDS = [
   { text: 'social robots',          active: true },
   { text: 'human-robot interaction', active: true },
@@ -1208,6 +1346,14 @@ let pageIndex  = 0;
 
 // Cache of { [paperId]: { liked, saved, hidden } } loaded from Firestore
 let userActions = {};
+
+// Cache of { [paperId]: { liked, saved, expanded, clicked, secondsVisible, ... } }
+// Separate from userActions — stores richer behavioral signals for learning
+let userSignals = {};
+
+// Learned keywords extracted from papers the user has liked/saved
+// { text: string, weight: number }[]  — persisted to Firestore users/{uid}.learnedKeywords
+let learnedKeywords = [];
 
 // Set of paperIds seen in a previous session (for unread badge)
 let seenPaperIds = new Set();
@@ -1363,6 +1509,253 @@ async function saveUserAction(paperId, key, value) {
 }
 
 
+// ── Firestore: behavioral signals ─────────────────────────────
+// Signals are stored in: users/{uid}/signals/{paperId}
+// Separate from 'actions' — stores richer behavioral data for learning.
+// Each doc: { liked, saved, expanded, clicked, secondsVisible, removed,
+//             title, abstract, authors, updatedAt }
+
+function userSignalsRef() {
+  return db.collection('users').doc(currentUser.uid).collection('signals');
+}
+
+// Load all signal docs into the in-memory userSignals cache.
+async function loadUserSignals() {
+  if (!currentUser) return;
+  try {
+    const snap = await userSignalsRef().get();
+    userSignals = {};
+    snap.forEach(doc => { userSignals[doc.id] = doc.data(); });
+  } catch (e) {
+    console.error('Error loading user signals:', e);
+  }
+}
+
+// Write a single field to a signal doc (merge). Also snapshots the paper
+// content so we can do keyword extraction later without re-fetching.
+async function recordSignal(paperId, field, value) {
+  if (!currentUser) return;
+  const paper = allPapers.find(p => p.paperId === paperId);
+  // Update in-memory cache immediately
+  userSignals[paperId] = userSignals[paperId] || {};
+  userSignals[paperId][field] = value;
+  const doc = {
+    [field]: value,
+    title:    paper?.title    || userSignals[paperId]?.title    || '',
+    abstract: paper?.abstract || userSignals[paperId]?.abstract || '',
+    authors:  paper?.authors  || userSignals[paperId]?.authors  || [],
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+  try {
+    await userSignalsRef().doc(paperId).set(doc, { merge: true });
+  } catch (e) {
+    console.error('Error recording signal:', e);
+  }
+}
+
+// Compute a signal-based score adjustment for a paper based on past interactions.
+// Returns a raw number (positive = boost, negative = penalty). Not clamped yet.
+function computeSignalScore(paperId) {
+  const s = userSignals[paperId];
+  if (!s) return 0;
+
+  // Recency multiplier based on updatedAt timestamp
+  const updatedAt = s.updatedAt?.toDate?.() || new Date(0);
+  const daysAgo   = (Date.now() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
+  const recency   = daysAgo <= 7 ? 1.0 : daysAgo <= 30 ? 0.7 : 0.4;
+
+  let raw = 0;
+  if (s.liked)    raw += 3;
+  if (s.saved)    raw += 2;
+  if (s.removed)  raw -= 5;
+  if (s.expanded) raw += 1;
+  if (s.clicked)  raw += 2;
+  // Time on screen: +0.5 per 10s, capped at 120s = max +6
+  raw += Math.min(s.secondsVisible || 0, 120) / 10 * 0.5;
+
+  return raw * recency;
+}
+
+
+// ── Keyword learning ──────────────────────────────────────────
+
+// Extract the top N meaningful words from a paper's title + abstract.
+// Title is weighted double (concatenated twice) so title words score higher.
+function extractKeywords(title, abstract, topN = 3) {
+  const text   = `${title} ${title} ${abstract}`.toLowerCase();
+  const tokens = text.split(/[^a-z]+/).filter(w => w.length >= 4 && !STOP_WORDS.has(w));
+  const freq   = {};
+  for (const t of tokens) freq[t] = (freq[t] || 0) + 1;
+  return Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, topN)
+    .map(([word]) => word);
+}
+
+// Compute a relevance boost (0–2) from learned keywords matching this paper.
+function scoreLearnedKeywords(paper) {
+  if (!learnedKeywords.length) return 0;
+  const text = `${paper.title || ''} ${paper.abstract || ''}`.toLowerCase();
+  let boost  = 0;
+  for (const lk of learnedKeywords) {
+    if (text.includes(lk.text.toLowerCase())) {
+      boost += lk.weight * 0.3;
+    }
+  }
+  return Math.min(2, boost);
+}
+
+// Called when a user likes or saves a paper.
+// Extracts keywords and adds/strengthens them in learnedKeywords[].
+function addLearnedKeywords(paper) {
+  if (!currentUser || !paper) return;
+  const extracted = extractKeywords(paper.title || '', paper.abstract || '');
+  const manualTexts = keywords.map(k => k.text.toLowerCase());
+  let changed = false;
+
+  for (const word of extracted) {
+    // Don't learn words already in manual keywords
+    if (manualTexts.some(m => m.includes(word) || word.includes(m))) continue;
+    const existing = learnedKeywords.find(lk => lk.text === word);
+    if (existing) {
+      existing.weight = Math.min(3.0, existing.weight + 0.5); // strengthen
+    } else {
+      learnedKeywords.push({ text: word, weight: 1.0 });
+    }
+    changed = true;
+  }
+
+  if (changed) {
+    saveLearnedKeywords();
+    renderResearchProfile();
+  }
+}
+
+// Remove a learned keyword by text (called from settings UI).
+function removeLearnedKeyword(text) {
+  learnedKeywords = learnedKeywords.filter(lk => lk.text !== text);
+  saveLearnedKeywords();
+  rescoreAll();
+  renderResearchProfile();
+}
+
+// Load learnedKeywords from the users/{uid} document.
+async function loadLearnedKeywords() {
+  if (!currentUser) return;
+  try {
+    const doc = await db.collection('users').doc(currentUser.uid).get();
+    learnedKeywords = doc.data()?.learnedKeywords || [];
+  } catch (e) {
+    console.error('Error loading learned keywords:', e);
+    learnedKeywords = [];
+  }
+}
+
+// Persist learnedKeywords back to Firestore.
+async function saveLearnedKeywords() {
+  if (!currentUser) return;
+  try {
+    await db.collection('users').doc(currentUser.uid).set(
+      { learnedKeywords },
+      { merge: true }
+    );
+  } catch (e) {
+    console.error('Error saving learned keywords:', e);
+  }
+}
+
+// Reset the full learning profile: delete all signals + learned keywords.
+async function resetLearningProfile() {
+  if (!currentUser) return;
+  if (!confirm('Reset your learning profile? This will clear all signals and learned keywords. Your manual keywords stay unchanged.')) return;
+
+  try {
+    // Batch-delete all signal docs
+    const snap = await userSignalsRef().get();
+    const batch = db.batch();
+    snap.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+
+    // Clear learned keywords from Firestore
+    await db.collection('users').doc(currentUser.uid).set(
+      { learnedKeywords: [] },
+      { merge: true }
+    );
+  } catch (e) {
+    console.error('Error resetting profile:', e);
+  }
+
+  userSignals     = {};
+  learnedKeywords = [];
+  rescoreAll();
+  renderResearchProfile();
+}
+
+
+// ── Combined scoring ──────────────────────────────────────────
+
+// Full relevance score incorporating keyword match, signal history, and learned keywords.
+// Returns integer 1–5. This replaces the direct scorepaper() call during fetch.
+function scoreWithSignals(paper) {
+  const base          = scorepaper(paper);                       // 1–5 keyword score
+  const learnedBoost  = scoreLearnedKeywords(paper);             // 0–2 boost
+  const signalBoost   = computeSignalScore(paper.paperId);       // raw signal value
+
+  // Signals contribute up to ±2 to the score (clamped and scaled)
+  const signalContrib = Math.max(-2, Math.min(2, signalBoost * 0.3));
+
+  const raw = base + (learnedBoost * 0.5) + signalContrib;
+  return Math.max(1, Math.min(5, Math.round(raw)));
+}
+
+// Re-score allPapers[] with the current signals + learned keywords, then re-render.
+function rescoreAll() {
+  if (allPapers.length === 0) return;
+  allPapers = allPapers.map(p => ({ ...p, score: scoreWithSignals(p) }));
+  papers    = applyFiltersAndSort(allPapers);
+  renderPapers();
+}
+
+
+// ── Score explanation (for tooltip) ──────────────────────────
+
+// Returns up to 3 human-readable reasons for a paper's score.
+function buildScoreExplanation(paper) {
+  const reasons = [];
+  const base    = scorepaper(paper);
+  const learned = scoreLearnedKeywords(paper);
+  const s       = userSignals[paper.paperId];
+
+  if (base >= 4)      reasons.push(`Strong keyword match (base ${base}/5)`);
+  else if (base >= 2) reasons.push(`Partial keyword match (base ${base}/5)`);
+  else                reasons.push('Outside your main keywords');
+
+  if (s?.liked)                        reasons.push('You liked this paper');
+  if (s?.saved)                        reasons.push('You saved this paper');
+  if (s?.clicked)                      reasons.push('You previously opened this paper');
+  if ((s?.secondsVisible || 0) >= 30)  reasons.push('You spent time reading this');
+  if (learned > 0.2)                   reasons.push('Matches topics from papers you liked');
+  if (paper.isWildcard)                reasons.push('🔍 Explore: highly cited, outside your usual keywords');
+
+  return reasons.slice(0, 3);
+}
+
+
+// ── Wildcard paper selection ──────────────────────────────────
+
+// Pick a "wildcard" paper for diversity — low keyword match but notably cited.
+// Returns a paper object with isWildcard=true, or null if none available.
+function pickWildcard(allPapersArr, alreadyShown) {
+  const shownIds = new Set(alreadyShown.map(p => p.paperId));
+  // Candidates: not already shown, low keyword score, but cited (interesting discovery)
+  const candidates = allPapersArr
+    .filter(p => !shownIds.has(p.paperId) && p.score <= 2 && (p.influentialCitationCount || 0) >= 3)
+    .sort((a, b) => (b.influentialCitationCount || 0) - (a.influentialCitationCount || 0));
+  if (!candidates.length) return null;
+  return { ...candidates[0], isWildcard: true };
+}
+
+
 // ── Auth state observer ──────────────────────────────────────
 
 auth.onAuthStateChanged(async (user) => {
@@ -1371,19 +1764,24 @@ auth.onAuthStateChanged(async (user) => {
   if (user) {
     await loadKeywordsFromFirestore();
     await loadUserActions();
+    await loadUserSignals();
+    await loadLearnedKeywords();
   } else {
-    keywords    = DEFAULT_KEYWORDS.map(k => ({ ...k }));
-    userActions = {};
+    keywords        = DEFAULT_KEYWORDS.map(k => ({ ...k }));
+    userActions     = {};
+    userSignals     = {};
+    learnedKeywords = [];
   }
 
   renderAuthUI();
   renderKeywordChips();
   renderActiveKeywordsBar();
   renderFilterPanel(); // keyword filter group depends on active keywords
+  renderResearchProfile();
 
-  // Re-score papers already on screen with the updated keyword set
+  // Re-score papers already on screen with updated signals + learned keywords
   if (allPapers.length > 0) {
-    allPapers = allPapers.map(p => ({ ...p, score: scorepaper(p) }));
+    allPapers = allPapers.map(p => ({ ...p, score: scoreWithSignals(p) }));
     papers    = applyFiltersAndSort(allPapers);
     pageIndex = 0;
     renderPapers();
@@ -1923,8 +2321,8 @@ async function fetchPapers() {
       }
     }
 
-    // Score all results and store as immutable allPapers
-    allPapers = results.map(p => ({ ...p, score: scorepaper(p) }));
+    // Score all results using keyword match + signal history + learned keywords
+    allPapers = results.map(p => ({ ...p, score: scoreWithSignals(p) }));
 
     // Apply filters and sort to derive the view
     papers    = applyFiltersAndSort(allPapers);
@@ -2415,21 +2813,39 @@ function clearAllFilters() {
 function handlePaperAction(paperId, action) {
   if (!currentUser) return; // buttons are disabled when signed out
 
+  const paper = allPapers.find(p => p.paperId === paperId);
+
   if (action === 'like') {
     const current = userActions[paperId]?.liked || false;
-    saveUserAction(paperId, 'liked', !current);
+    const newVal  = !current;
+    saveUserAction(paperId, 'liked', newVal);
+    recordSignal(paperId, 'liked', newVal);
+    if (newVal && paper) {
+      // Positive signal: learn keywords from this paper
+      addLearnedKeywords(paper);
+      // Rescore immediately so score badge updates
+      const updated = { ...paper, score: scoreWithSignals(paper) };
+      allPapers = allPapers.map(p => p.paperId === paperId ? updated : p);
+    }
     updateCardActionDisplay(paperId);
-    // If we're filtering by liked, re-render
     if (filterState.status === 'liked') applyAndRender();
   } else if (action === 'save') {
     const current = userActions[paperId]?.saved || false;
-    saveUserAction(paperId, 'saved', !current);
+    const newVal  = !current;
+    saveUserAction(paperId, 'saved', newVal);
+    recordSignal(paperId, 'saved', newVal);
+    if (newVal && paper) {
+      addLearnedKeywords(paper);
+      const updated = { ...paper, score: scoreWithSignals(paper) };
+      allPapers = allPapers.map(p => p.paperId === paperId ? updated : p);
+    }
     updateCardActionDisplay(paperId);
     if (filterState.status === 'saved') applyAndRender();
   } else if (action === 'hide') {
     const current = userActions[paperId]?.hidden || false;
     const newVal  = !current;
     saveUserAction(paperId, 'hidden', newVal);
+    if (newVal) recordSignal(paperId, 'removed', true); // strong negative signal
     if (newVal && !showHidden) {
       // Fade out then remove
       const card = document.querySelector(`[data-paperid="${paperId}"]`);
@@ -2572,7 +2988,11 @@ function buildPaperCardHtml(paper) {
     : '';
 
   // ── Score badge ─────────────────────────────────────────────
-  const scoreClass = paper.score >= 4 ? 'high' : paper.score >= 2 ? 'mid' : '';
+  const scoreClass       = paper.score >= 4 ? 'high' : paper.score >= 2 ? 'mid' : '';
+  const scoreExplanation = buildScoreExplanation(paper).join('\n');
+  const wildcardBadge    = paper.isWildcard
+    ? `<span class="wildcard-badge" title="Explore: outside your usual keywords but highly cited">🔍 Explore</span>`
+    : '';
 
   // ── Citation metrics ────────────────────────────────────────
   const citeCount  = typeof paper.citationCount          === 'number' ? paper.citationCount          : null;
@@ -2667,16 +3087,19 @@ function buildPaperCardHtml(paper) {
   const hiddenLbl   = a.hidden ? '👁 Unhide' : '🙈 Hide';
 
   return `
-    <article class="paper-card${isUnread ? ' paper-card--unread' : ''}" data-paperid="${esc(paperId)}">
+    <article class="paper-card${isUnread ? ' paper-card--unread' : ''}${paper.isWildcard ? ' paper-card--wildcard' : ''}" data-paperid="${esc(paperId)}">
       <div class="paper-card-top">
         <h2 class="paper-title">
           <a href="${esc(paperUrl)}" target="_blank" rel="noopener">
             ${titleHtml}
           </a>
         </h2>
-        <span class="score-badge ${scoreClass}" title="Relevance score based on keyword matches">
-          ★ ${paper.score}/5
-        </span>
+        <div class="paper-card-badges">
+          ${wildcardBadge}
+          <span class="score-badge ${scoreClass}" title="★ ${paper.score}/5&#10;${esc(scoreExplanation)}">
+            ★ ${paper.score}/5
+          </span>
+        </div>
       </div>
       <div class="paper-meta">
         <a class="author-link" href="${esc(authorProfileUrl)}" target="_blank" rel="noopener"
@@ -2716,8 +3139,15 @@ function renderPapers() {
   }
 
   // Show a paginated slice: first (pageIndex+1)*PAGE_SIZE papers
-  const slice    = papers.slice(0, (pageIndex + 1) * PAGE_SIZE);
-  const hasMore  = papers.length > slice.length;
+  const rawSlice = papers.slice(0, (pageIndex + 1) * PAGE_SIZE);
+  const hasMore  = papers.length > rawSlice.length;
+
+  // Inject a wildcard paper every 10th slot (index 9, 19, 29...) for diversity
+  const slice = rawSlice.slice(); // copy so we don't mutate papers[]
+  for (let i = 9; i < slice.length; i += 10) {
+    const wildcard = pickWildcard(allPapers, slice);
+    if (wildcard) slice.splice(i, 0, wildcard); // insert before pushing index further
+  }
 
   feed.innerHTML = slice.map(p => buildPaperCardHtml(p)).join('') +
     (hasMore ? `
@@ -2729,7 +3159,7 @@ function renderPapers() {
   // Bind delegated events
   bindCardActions();
 
-  // Wire up expand buttons
+  // Wire up expand buttons — also record expand as a mild positive signal
   feed.querySelectorAll('.expand-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const pid   = btn.dataset.paperid;
@@ -2737,8 +3167,25 @@ function renderPapers() {
       if (!absEl) return;
       const expanded = absEl.classList.toggle('expanded');
       btn.textContent = expanded ? 'Show less' : 'Show more';
+      if (expanded) recordSignal(pid, 'expanded', true); // mild +1 signal
     });
   });
+
+  // Track title link clicks as a strong positive signal
+  if (!feed._titleClickListener) {
+    feed._titleClickListener = (e) => {
+      const link = e.target.closest('.paper-title a');
+      if (!link) return;
+      const card = link.closest('[data-paperid]');
+      if (card?.dataset.paperid) {
+        recordSignal(card.dataset.paperid, 'clicked', true); // +2 signal
+      }
+    };
+    feed.addEventListener('click', feed._titleClickListener);
+  }
+
+  // Time-on-screen tracking via IntersectionObserver
+  startVisibilityTracking();
 
   // Load more button
   const loadMoreBtn = document.getElementById('loadMoreBtn');
@@ -2761,6 +3208,44 @@ function renderEmptyState() {
     No papers match the current filters.
     <br><button class="btn-text" onclick="clearAllFilters()" style="margin-top:8px">Clear filters</button>
   </div>`;
+}
+
+// Track how long each paper card is visible on screen.
+// Uses IntersectionObserver. Cards must be 50% visible for ≥5 seconds to record.
+let _visibilityObserver = null;
+const _visibilityTimers = new Map(); // paperId → { startMs, accumulatedMs }
+
+function startVisibilityTracking() {
+  // Disconnect old observer if any
+  if (_visibilityObserver) _visibilityObserver.disconnect();
+
+  _visibilityObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      const id = entry.target.dataset?.paperid;
+      if (!id) continue;
+      if (entry.isIntersecting) {
+        // Card entered viewport — start timer
+        const prev = _visibilityTimers.get(id) || { startMs: null, accumulatedMs: 0 };
+        _visibilityTimers.set(id, { startMs: Date.now(), accumulatedMs: prev.accumulatedMs });
+      } else {
+        // Card left viewport — accumulate time
+        const t = _visibilityTimers.get(id);
+        if (t?.startMs) {
+          const elapsed = Date.now() - t.startMs;
+          const total   = t.accumulatedMs + elapsed;
+          _visibilityTimers.set(id, { startMs: null, accumulatedMs: total });
+          // Only record signals for meaningful dwell time (≥5 seconds total)
+          if (total >= 5000) {
+            recordSignal(id, 'secondsVisible', Math.floor(total / 1000));
+          }
+        }
+      }
+    }
+  }, { threshold: 0.5 }); // fire when ≥50% of card is visible
+
+  document.querySelectorAll('.paper-card[data-paperid]').forEach(el => {
+    _visibilityObserver.observe(el);
+  });
 }
 
 // Single delegated listener for all action buttons in the feed.
@@ -2822,6 +3307,106 @@ function showSkeletons() {
 
 
 // ── Render: keyword chips in settings panel ───────────────────
+
+// ── Research Profile UI ───────────────────────────────────────
+// Renders the "Your Research Profile" section in the settings panel.
+// Shows learned keywords, top topics, top authors, and a reset button.
+function renderResearchProfile() {
+  const container = document.getElementById('researchProfile');
+  if (!container) return;
+
+  if (!currentUser) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'block';
+
+  // Build top 5 topics from signal data
+  const topicFreq = {};
+  for (const [, s] of Object.entries(userSignals)) {
+    const hasPositiveSignal = s.liked || s.saved || s.expanded || s.clicked || (s.secondsVisible || 0) >= 10;
+    if (!hasPositiveSignal) continue;
+    const words = extractKeywords(s.title || '', s.abstract || '', 5);
+    for (const w of words) topicFreq[w] = (topicFreq[w] || 0) + 1;
+  }
+  const topTopics = Object.entries(topicFreq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([w]) => w);
+
+  // Build top 5 authors from liked/clicked signals
+  const authorFreq = {};
+  for (const [, s] of Object.entries(userSignals)) {
+    if (!(s.liked || s.clicked)) continue;
+    const firstAuthor = s.authors?.[0]?.name;
+    if (firstAuthor) authorFreq[firstAuthor] = (authorFreq[firstAuthor] || 0) + 1;
+  }
+  const topAuthors = Object.entries(authorFreq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name]) => name);
+
+  // Render learned keywords as removable chips
+  const learnedHtml = learnedKeywords.length
+    ? learnedKeywords
+        .sort((a, b) => b.weight - a.weight)
+        .map(lk => `
+          <span class="learned-kw-chip" title="Weight: ${lk.weight.toFixed(1)} — click × to remove">
+            ${esc(lk.text)}
+            <button class="remove-learned-btn" data-kw="${esc(lk.text)}" aria-label="Remove ${esc(lk.text)}">×</button>
+          </span>`)
+        .join('')
+    : '<span class="profile-empty">Like or save papers to start learning.</span>';
+
+  const topicsHtml = topTopics.length
+    ? topTopics.map(t => `<span class="profile-topic-chip">${esc(t)}</span>`).join('')
+    : '<span class="profile-empty">No engagement data yet.</span>';
+
+  const authorsHtml = topAuthors.length
+    ? topAuthors.map(a => `<span class="profile-topic-chip">${esc(a)}</span>`).join('')
+    : '<span class="profile-empty">Like or click papers to track authors.</span>';
+
+  container.innerHTML = `
+    <div class="research-profile-inner">
+      <h3 class="profile-heading">Your Research Profile</h3>
+      <p class="profile-subtitle">Learned from your interactions — helps personalise your feed.</p>
+
+      <div class="profile-section">
+        <h4 class="profile-section-title">Keywords Learned for You</h4>
+        <p class="profile-hint">From papers you liked or saved. Click × to remove.</p>
+        <div class="learned-kw-list" id="learnedKeywordList">${learnedHtml}</div>
+      </div>
+
+      <div class="profile-section">
+        <h4 class="profile-section-title">Your Top Topics</h4>
+        <div class="profile-chips">${topicsHtml}</div>
+      </div>
+
+      <div class="profile-section">
+        <h4 class="profile-section-title">Authors You Engage With Most</h4>
+        <div class="profile-chips">${authorsHtml}</div>
+      </div>
+
+      <button class="btn-secondary btn-reset-profile" id="resetProfileBtn">
+        🔄 Reset my learning profile
+      </button>
+    </div>
+  `;
+
+  // Wire up remove learned keyword buttons
+  container.querySelectorAll('.remove-learned-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeLearnedKeyword(btn.dataset.kw);
+    });
+  });
+
+  // Wire up reset button
+  const resetBtn = document.getElementById('resetProfileBtn');
+  if (resetBtn) resetBtn.addEventListener('click', resetLearningProfile);
+}
+
 
 function renderKeywordChips() {
   const list = document.getElementById('keywordList');

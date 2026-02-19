@@ -1089,6 +1089,192 @@ test('New Sort Options', 'existing cited sort still works after adding new sorts
 });
 
 
+// ════════════════════════════════════════════════════════════
+//  SECTION 15 — Smart Relevance Learning Algorithm
+//  Tests pure functions only (Firebase calls excluded).
+// ════════════════════════════════════════════════════════════
+
+// ── Mirror STOP_WORDS from index.html ────────────────────────
+const STOP_WORDS_TEST = new Set([
+  'the','a','an','and','or','but','in','on','at','to','for','of','with','by',
+  'from','as','is','are','was','were','be','been','being','have','has','had',
+  'do','does','did','will','would','could','should','may','might','this','that',
+  'these','those','it','its','we','our','they','their','study','paper','research',
+  'using','used','results','show','shows','showed','approach','method','methods',
+  'system','based','new','also','can','two','one','both','between','more','most',
+  'such','than','when','which','who','how','data','model','propose','proposed',
+  'present','demonstrate','find','found','analysis','evaluate','evaluation',
+  'provide','different','task','tasks','work','works','high','large','small',
+  'number','recent','review','effect','effects','related','across','within',
+  'toward','through','during','while','where','other','each','into','over',
+]);
+
+function extractKeywordsTest(title, abstract, topN = 3) {
+  const text   = `${title} ${title} ${abstract}`.toLowerCase();
+  const tokens = text.split(/[^a-z]+/).filter(w => w.length >= 4 && !STOP_WORDS_TEST.has(w));
+  const freq   = {};
+  for (const t of tokens) freq[t] = (freq[t] || 0) + 1;
+  return Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, topN)
+    .map(([word]) => word);
+}
+
+// ── extractKeywords tests ─────────────────────────────────────
+
+test('Learning Algorithm', 'extractKeywords removes stop words', () => {
+  const result = extractKeywordsTest('The Study of Robots', 'This paper is about robots and the study', 3);
+  assert(!result.includes('the'), 'should not include "the"');
+  assert(!result.includes('study'), 'should not include "study" (stop word)');
+  assert(!result.includes('paper'), 'should not include "paper" (stop word)');
+});
+
+test('Learning Algorithm', 'extractKeywords respects topN limit', () => {
+  const result = extractKeywordsTest('social robots human interaction priming contagion', '', 3);
+  assertEqual(result.length, 3, 'should return exactly 3 keywords');
+});
+
+test('Learning Algorithm', 'extractKeywords weights title higher than abstract', () => {
+  // "robot" appears 2x in title (doubled) + 1x in abstract = 3x
+  // "emotion" appears only 1x in abstract = 1x
+  const result = extractKeywordsTest('robot interaction robot', 'emotion drives human behavior', 2);
+  assertEqual(result[0], 'robot', 'title word "robot" should rank higher than abstract-only word');
+});
+
+test('Learning Algorithm', 'extractKeywords filters short words', () => {
+  const result = extractKeywordsTest('AI robots HCI', 'HRI is key for UX', 5);
+  assert(result.every(w => w.length >= 4), 'all extracted words should be ≥4 chars');
+});
+
+test('Learning Algorithm', 'extractKeywords handles empty strings', () => {
+  const result = extractKeywordsTest('', '', 3);
+  assertEqual(result.length, 0, 'empty input yields no keywords');
+});
+
+// ── computeSignalScore tests ──────────────────────────────────
+
+function computeSignalScoreTest(signal) {
+  if (!signal) return 0;
+  const updatedAt = signal._fakeDate || new Date(0);
+  const daysAgo   = (Date.now() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
+  const recency   = daysAgo <= 7 ? 1.0 : daysAgo <= 30 ? 0.7 : 0.4;
+  let raw = 0;
+  if (signal.liked)    raw += 3;
+  if (signal.saved)    raw += 2;
+  if (signal.removed)  raw -= 5;
+  if (signal.expanded) raw += 1;
+  if (signal.clicked)  raw += 2;
+  raw += Math.min(signal.secondsVisible || 0, 120) / 10 * 0.5;
+  return raw * recency;
+}
+
+test('Learning Algorithm', 'computeSignalScore: liked + saved = +5', () => {
+  const score = computeSignalScoreTest({ liked: true, saved: true, _fakeDate: new Date() });
+  assertEqual(score, 5, 'liked(+3) + saved(+2) = 5 with full recency');
+});
+
+test('Learning Algorithm', 'computeSignalScore: removed = strong negative', () => {
+  const score = computeSignalScoreTest({ removed: true, _fakeDate: new Date() });
+  assertEqual(score, -5, 'removed should give -5');
+});
+
+test('Learning Algorithm', 'computeSignalScore: recency reduces old signals', () => {
+  const recent = computeSignalScoreTest({ liked: true, _fakeDate: new Date() });
+  const old31  = computeSignalScoreTest({ liked: true, _fakeDate: new Date(Date.now() - 31*24*60*60*1000) });
+  assert(recent > old31, 'recent signal should score higher than 31-day-old signal');
+  assertEqual(old31, 3 * 0.4, '31+ days old gets 40% recency weight');
+});
+
+test('Learning Algorithm', 'computeSignalScore: time on screen capped at 120s', () => {
+  const capped  = computeSignalScoreTest({ secondsVisible: 300, _fakeDate: new Date() });
+  const maxTime = computeSignalScoreTest({ secondsVisible: 120, _fakeDate: new Date() });
+  assertEqual(capped, maxTime, 'time cap at 120s prevents unbounded score');
+  assertEqual(maxTime, 120 / 10 * 0.5, '120s = 6 points');
+});
+
+test('Learning Algorithm', 'computeSignalScore: no signal = 0', () => {
+  assertEqual(computeSignalScoreTest(null), 0, 'null signal returns 0');
+});
+
+// ── scoreLearnedKeywords tests ────────────────────────────────
+
+function scoreLearnedKeywordsTest(paper, learnedKws) {
+  if (!learnedKws.length) return 0;
+  const text = `${paper.title || ''} ${paper.abstract || ''}`.toLowerCase();
+  let boost  = 0;
+  for (const lk of learnedKws) {
+    if (text.includes(lk.text.toLowerCase())) boost += lk.weight * 0.3;
+  }
+  return Math.min(2, boost);
+}
+
+test('Learning Algorithm', 'scoreLearnedKeywords: matching keyword gives boost', () => {
+  const paper   = { title: 'Emotional Contagion in Robots', abstract: '' };
+  const learned = [{ text: 'emotional', weight: 1.0 }, { text: 'contagion', weight: 1.0 }];
+  const boost   = scoreLearnedKeywordsTest(paper, learned);
+  assert(boost > 0, 'matching learned keyword should give positive boost');
+});
+
+test('Learning Algorithm', 'scoreLearnedKeywords: no match = 0', () => {
+  const paper   = { title: 'Quantum Physics', abstract: 'Laser beams.' };
+  const learned = [{ text: 'robots', weight: 1.5 }];
+  assertEqual(scoreLearnedKeywordsTest(paper, learned), 0, 'no match returns 0');
+});
+
+test('Learning Algorithm', 'scoreLearnedKeywords: capped at 2.0', () => {
+  const paper   = { title: 'robots emotions priming contagion social', abstract: 'robots emotions priming' };
+  const learned = Array(10).fill(null).map((_, i) => ({ text: ['robots','emotions','priming','contagion','social'][i % 5], weight: 3.0 }));
+  const boost   = scoreLearnedKeywordsTest(paper, learned);
+  assert(boost <= 2, 'boost should be capped at 2.0');
+});
+
+test('Learning Algorithm', 'scoreLearnedKeywords: empty learned list returns 0', () => {
+  const paper = { title: 'Social Robots', abstract: 'Study of robots.' };
+  assertEqual(scoreLearnedKeywordsTest(paper, []), 0, 'empty learned list gives 0');
+});
+
+// ── pickWildcard tests ────────────────────────────────────────
+
+function pickWildcardTest(allPapersArr, alreadyShown) {
+  const shownIds   = new Set(alreadyShown.map(p => p.paperId));
+  const candidates = allPapersArr
+    .filter(p => !shownIds.has(p.paperId) && p.score <= 2 && (p.influentialCitationCount || 0) >= 3)
+    .sort((a, b) => (b.influentialCitationCount || 0) - (a.influentialCitationCount || 0));
+  if (!candidates.length) return null;
+  return { ...candidates[0], isWildcard: true };
+}
+
+test('Learning Algorithm', 'pickWildcard: picks low-score high-citation paper', () => {
+  const all = [
+    { paperId: 'a', score: 5, influentialCitationCount: 100 }, // high score — not a wildcard candidate
+    { paperId: 'b', score: 1, influentialCitationCount: 15 },  // low score, cited — good wildcard
+    { paperId: 'c', score: 2, influentialCitationCount: 5 },   // low score, cited — ok wildcard
+    { paperId: 'd', score: 1, influentialCitationCount: 0 },   // low score, not cited — skip
+  ];
+  const wildcard = pickWildcardTest(all, []);
+  assertEqual(wildcard?.paperId, 'b', 'should pick paper b (highest infl. citations among low-score papers)');
+  assert(wildcard?.isWildcard === true, 'should be tagged as wildcard');
+});
+
+test('Learning Algorithm', 'pickWildcard: returns null if no candidates', () => {
+  const all = [
+    { paperId: 'a', score: 5, influentialCitationCount: 100 }, // high score, not a candidate
+    { paperId: 'b', score: 1, influentialCitationCount: 0 },   // low citations, not a candidate
+  ];
+  const wildcard = pickWildcardTest(all, []);
+  assertEqual(wildcard, null, 'returns null when no suitable wildcard exists');
+});
+
+test('Learning Algorithm', 'pickWildcard: excludes already-shown papers', () => {
+  const all = [
+    { paperId: 'a', score: 1, influentialCitationCount: 20 },
+    { paperId: 'b', score: 1, influentialCitationCount: 10 },
+  ];
+  const wildcard = pickWildcardTest(all, [{ paperId: 'a' }]);
+  assertEqual(wildcard?.paperId, 'b', 'should skip paper a (already shown)');
+});
+
+
 // ── Wire up the run button ───────────────────────────────────
 document.getElementById('runBtn').addEventListener('click', runAll);
 
