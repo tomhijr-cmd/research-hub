@@ -952,6 +952,7 @@ function addKeyword() {
   input.value = '';
   renderKeywordChips();
   renderActiveKeywordsBar();
+  fetchPapers(); // fetch papers for the new keyword set
 }
 
 function removeKeyword(index) {
@@ -960,6 +961,7 @@ function removeKeyword(index) {
   saveKeywords();
   renderKeywordChips();
   renderActiveKeywordsBar();
+  fetchPapers(); // re-fetch with updated keyword set
 }
 
 function toggleKeyword(index) {
@@ -968,9 +970,7 @@ function toggleKeyword(index) {
   saveKeywords();
   renderKeywordChips();
   renderActiveKeywordsBar();
-  // Re-score displayed papers with the updated active keywords
-  // (no new network request needed — just re-render with new scores)
-  if (papers.length > 0) renderPapers();
+  fetchPapers(); // re-fetch so the feed reflects the new active set
 }
 
 // Returns only active keywords
