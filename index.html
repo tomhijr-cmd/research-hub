@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Research Hub — HRI Paper Feed</title>
+
+  <!-- ── Firebase SDK (compat mode = no bundler needed, works in plain HTML) ── -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
   <style>
     /* ── CSS Custom Properties (theme variables) ── */
     :root {
@@ -134,6 +140,94 @@
     /* Spinning animation for refresh button when loading */
     .btn-spinning { animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Auth area styles ── */
+
+    /* Google sign-in button */
+    .btn-signin {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      white-space: nowrap;
+      box-shadow: var(--shadow);
+    }
+
+    .btn-signin svg {
+      flex-shrink: 0;
+    }
+
+    /* Signed-in user display */
+    .auth-user {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    /* Fallback avatar when no photo */
+    .user-avatar-fallback {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .user-name {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-signout {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-decoration: underline;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .btn-signout:hover { color: var(--text); opacity: 1; }
+
+    /* Hint shown in settings panel when signed out */
+    .signin-notice {
+      font-style: italic;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    /* Dim the add-keyword row when signed out */
+    .add-keyword-row.disabled {
+      opacity: 0.45;
+      pointer-events: none;
+    }
 
     /* ── Settings Panel ── */
     .settings-panel {
@@ -429,6 +523,8 @@
       <p>HRI Paper Feed — Semantic Scholar</p>
     </div>
     <div class="header-actions">
+      <!-- Auth area: shows sign-in button OR avatar + name + sign-out -->
+      <div class="auth-area" id="authArea"></div>
       <!-- Refresh button — its inner span spins while loading -->
       <button class="btn-icon" id="refreshBtn" title="Fetch new papers" aria-label="Refresh papers">
         <span id="refreshIcon">↻</span>
@@ -448,11 +544,16 @@
       The × button removes a keyword entirely.
     </p>
 
+    <!-- Sign-in hint shown only when signed out -->
+    <p class="signin-notice" id="signinNotice" style="display:none;">
+      Sign in with Google to save your keywords across devices.
+    </p>
+
     <!-- Keyword chips are rendered here by JS -->
     <div class="keyword-list" id="keywordList"></div>
 
-    <!-- Add new keyword -->
-    <div class="add-keyword-row">
+    <!-- Add new keyword — disabled (dimmed) when signed out -->
+    <div class="add-keyword-row" id="addKeywordRow">
       <input type="text" id="newKeywordInput" placeholder="Add a keyword…" maxlength="80" aria-label="New keyword" />
       <button class="btn-primary" id="addKeywordBtn">Add</button>
     </div>
@@ -478,23 +579,46 @@
 // ════════════════════════════════════════════════════════════
 //  Research Hub — HRI Paper Feed
 //  Single-file vanilla JS app. No frameworks, no build step.
-//  All state lives in memory and persists to localStorage.
+//  Keywords sync to Firestore when signed in; localStorage
+//  is kept for theme and health check state only.
 // ════════════════════════════════════════════════════════════
+
+// ── Firebase setup ──────────────────────────────────────────
+//
+// firebaseConfig is safe to embed in client HTML — it's a project
+// identifier, not a secret. Security is enforced by Firestore Rules
+// (each user can only read/write their own document).
+
+const firebaseConfig = {
+  apiKey:            'AIzaSyCGeXjURWaP02MdENQIR5wjQJdmapyAEPo',
+  authDomain:        'research-hub-8da6a.firebaseapp.com',
+  projectId:         'research-hub-8da6a',
+  storageBucket:     'research-hub-8da6a.firebasestorage.app',
+  messagingSenderId: '765872653008',
+  appId:             '1:765872653008:web:ea08868e0e59e86acb14d5',
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// Holds the signed-in Firebase User object, or null if signed out.
+let currentUser = null;
+
 
 // ── Constants ──────────────────────────────────────────────
 
-const STORAGE_KEY   = 'researchhub_keywords'; // localStorage key
-const THEME_KEY     = 'researchhub_theme';
+const THEME_KEY      = 'researchhub_theme';
 const LAST_FETCH_KEY = 'researchhub_last_fetch'; // ISO timestamp of last successful fetch
 const HEALTH_KEY     = 'researchhub_health';     // last health check result {ok, msg, ts}
 const FETCH_TTL_MS   = 24 * 60 * 60 * 1000;     // 24 hours in ms — auto-refresh threshold
 
 // Requests go to our proxy (/api/papers) which forwards them to Semantic Scholar
 // server-side, avoiding CORS/SSL issues in the browser.
-const API_BASE      = '/api/papers';
-const PAPERS_LIMIT  = 30;  // max papers to fetch per search
+const API_BASE     = '/api/papers';
+const PAPERS_LIMIT = 30;  // max papers to fetch per search
 
-// Default keywords shown on first visit
+// Default keywords shown when signed out, or seeded on first sign-in
 const DEFAULT_KEYWORDS = [
   { text: 'social robots',          active: true },
   { text: 'human-robot interaction', active: true },
@@ -517,28 +641,167 @@ let loading  = false;
 // ── Initialise ─────────────────────────────────────────────
 
 function init() {
-  loadKeywords();
+  // Render signed-out UI immediately (auth observer will update it once Firebase resolves)
+  renderAuthUI();
+  loadKeywords();   // load defaults so the feed isn't blank while auth resolves
   loadTheme();
   bindEvents();
   renderHealthBar(); // show last known health state immediately while loading
-  smartRefresh();    // fetch only if >24h since last fetch (or never fetched)
+  smartRefresh();    // fetch papers right away
 }
+
+
+// ── Auth UI ─────────────────────────────────────────────────
+
+// Renders the correct auth widget into #authArea based on currentUser.
+function renderAuthUI() {
+  const area = document.getElementById('authArea');
+  if (!area) return;
+
+  if (currentUser) {
+    // Signed in: show avatar + name + sign-out link
+    const photo    = currentUser.photoURL;
+    const name     = currentUser.displayName || currentUser.email || 'User';
+    const initials = name.charAt(0).toUpperCase();
+
+    const avatarHtml = photo
+      ? `<img class="user-avatar" src="${esc(photo)}" alt="${esc(name)}" referrerpolicy="no-referrer">`
+      : `<span class="user-avatar-fallback">${esc(initials)}</span>`;
+
+    area.innerHTML = `
+      <div class="auth-user">
+        ${avatarHtml}
+        <span class="user-name" title="${esc(name)}">${esc(name)}</span>
+        <button class="btn-signout" id="signOutBtn">Sign out</button>
+      </div>`;
+
+    document.getElementById('signOutBtn').addEventListener('click', signOut);
+
+    // Show add-keyword row, hide notice
+    const row    = document.getElementById('addKeywordRow');
+    const notice = document.getElementById('signinNotice');
+    if (row)    row.classList.remove('disabled');
+    if (notice) notice.style.display = 'none';
+
+  } else {
+    // Signed out: show Google sign-in button
+    area.innerHTML = `
+      <button class="btn-signin" id="signInBtn">
+        <svg width="16" height="16" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+          <path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/>
+          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+        </svg>
+        Sign in with Google
+      </button>`;
+
+    document.getElementById('signInBtn').addEventListener('click', signIn);
+
+    // Dim add-keyword row, show sign-in notice
+    const row    = document.getElementById('addKeywordRow');
+    const notice = document.getElementById('signinNotice');
+    if (row)    row.classList.add('disabled');
+    if (notice) notice.style.display = 'block';
+  }
+}
+
+// Open Google sign-in popup
+function signIn() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(err => {
+    console.error('Sign-in error:', err);
+  });
+}
+
+// Sign the user out
+function signOut() {
+  auth.signOut().catch(err => {
+    console.error('Sign-out error:', err);
+  });
+}
+
+
+// ── Firestore helpers ────────────────────────────────────────
+
+// Reference to the signed-in user's Firestore document
+function userDocRef() {
+  return db.collection('users').doc(currentUser.uid);
+}
+
+// Load this user's keywords from Firestore.
+// On first sign-in (no document yet), seeds with DEFAULT_KEYWORDS.
+async function loadKeywordsFromFirestore() {
+  try {
+    const snap = await userDocRef().get();
+    if (snap.exists && snap.data().keywords) {
+      keywords = snap.data().keywords;
+    } else {
+      // First time this user signs in — seed with defaults and save
+      keywords = DEFAULT_KEYWORDS.map(k => ({ ...k }));
+      await saveKeywordsToFirestore();
+    }
+  } catch (e) {
+    console.error('Firestore load error:', e);
+    // Fall back to defaults so the app is still usable
+    keywords = DEFAULT_KEYWORDS.map(k => ({ ...k }));
+  }
+}
+
+// Save the current keywords array to Firestore (merge so other fields aren't overwritten)
+async function saveKeywordsToFirestore() {
+  try {
+    await userDocRef().set({ keywords }, { merge: true });
+  } catch (e) {
+    console.error('Firestore save error:', e);
+  }
+}
+
+
+// ── Auth state observer ──────────────────────────────────────
+//
+// This is the central controller for sign-in / sign-out.
+// Fires once on page load (with the current auth state) and
+// again whenever the user signs in or out.
+
+auth.onAuthStateChanged(async (user) => {
+  currentUser = user;
+
+  if (user) {
+    // Signed in — load this user's keywords from Firestore
+    await loadKeywordsFromFirestore();
+  } else {
+    // Signed out — reset to defaults (read-only view)
+    keywords = DEFAULT_KEYWORDS.map(k => ({ ...k }));
+  }
+
+  renderAuthUI();
+  renderKeywordChips();
+  renderActiveKeywordsBar();
+
+  // Re-score any papers already on screen with the updated keyword set
+  if (papers.length > 0) {
+    papers = papers.map(p => ({ ...p, score: scorepaper(p) })).sort((a, b) => b.score - a.score);
+    renderPapers();
+  }
+});
 
 
 // ── localStorage helpers ────────────────────────────────────
 
+// Load keywords for the initial (pre-auth) render.
+// The auth observer will overwrite these once Firebase resolves.
 function loadKeywords() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    keywords = saved ? JSON.parse(saved) : DEFAULT_KEYWORDS;
-  } catch (e) {
-    // If localStorage is corrupted, fall back to defaults
-    keywords = DEFAULT_KEYWORDS;
-  }
+  keywords = DEFAULT_KEYWORDS.map(k => ({ ...k }));
 }
 
+// Save keywords: routes to Firestore when signed in, no-op when signed out.
+// (Signed-out users view a read-only feed — their changes are not persisted.)
 function saveKeywords() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(keywords));
+  if (currentUser) {
+    saveKeywordsToFirestore(); // async, runs in background
+  }
+  // No localStorage save — keywords are owned by Firestore when signed in
 }
 
 function loadTheme() {
@@ -558,9 +821,6 @@ function applyTheme(theme) {
 // Always fetches papers on load (papers aren't cached in localStorage,
 // only the timestamp is). The "last updated" time is shown in the status
 // bar so you can see at a glance whether the feed is fresh.
-//
-// The 24h check is used to decide whether to show a "stale data" warning
-// — if somehow the last fetch was >24h ago, we flag it in the status bar.
 
 function smartRefresh() {
   fetchPapers(); // always fetch on load — server cache makes this fast
@@ -578,9 +838,8 @@ function friendlyTime(date) {
 
 // ── Health check ────────────────────────────────────────────
 //
-// Runs once on app load (called from fetchPapers on success, or
-// from smartRefresh when skipping the fetch). Checks that the
-// API returned at least one valid paper and saves the result.
+// Runs once on app load (called from fetchPapers on success).
+// Checks that the API returned at least one valid paper and saves the result.
 
 async function runHealthCheck() {
   const firstKeyword = activeKeywords()[0];
@@ -674,6 +933,9 @@ function bindEvents() {
 // ── Keyword management ──────────────────────────────────────
 
 function addKeyword() {
+  // Silently block if signed out (the row is visually dimmed anyway)
+  if (!currentUser) return;
+
   const input = document.getElementById('newKeywordInput');
   const text  = input.value.trim().toLowerCase();
 
@@ -693,6 +955,7 @@ function addKeyword() {
 }
 
 function removeKeyword(index) {
+  if (!currentUser) return; // read-only when signed out
   keywords.splice(index, 1);
   saveKeywords();
   renderKeywordChips();
@@ -700,6 +963,7 @@ function removeKeyword(index) {
 }
 
 function toggleKeyword(index) {
+  // Toggling is allowed even when signed out (just not persisted)
   keywords[index].active = !keywords[index].active;
   saveKeywords();
   renderKeywordChips();
