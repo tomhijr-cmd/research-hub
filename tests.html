@@ -232,17 +232,20 @@ function scorepaperTest(paper, activeKws) {
   if (activeKws.length === 0) return 1;
   const title    = (paper.title    || '').toLowerCase();
   const abstract = (paper.abstract || '').toLowerCase();
-  let matches = 0;
+  let matches    = 0;
+  let matchedKws = 0;
   for (const kw of activeKws) {
-    const kwLower = kw.toLowerCase();
-    if (title.includes(kwLower))    matches += 2;
-    if (abstract.includes(kwLower)) matches += 1;
+    const kwLower    = kw.toLowerCase();
+    const inTitle    = title.includes(kwLower);
+    const inAbstract = abstract.includes(kwLower);
+    if (inTitle || inAbstract) {
+      matchedKws++;
+      if (inTitle)    matches += 2;
+      if (inAbstract) matches += 1;
+    }
   }
-  const max = activeKws.length * 3;
-  const ratio = matches / max;
-  if (ratio === 0)  return 1;
-  if (ratio < 0.1)  return 1;
-  if (ratio < 0.25) return 2;
+  if (matchedKws === 0) return 1;
+  const ratio = matches / (matchedKws * 3);
   if (ratio < 0.5)  return 3;
   if (ratio < 0.75) return 4;
   return 5;
@@ -254,12 +257,21 @@ test('Scoring', 'keyword in title scores higher than abstract only', () => {
   const abstractMatch = { title: 'Robots in Education', abstract: 'We study social robots in schools.' };
   const s1 = scorepaperTest(titleMatch, kws);
   const s2 = scorepaperTest(abstractMatch, kws);
+  // title-only → 4, abstract-only → 3
+  assertEqual(s1, 4, 'title-only match should score 4');
+  assertEqual(s2, 3, 'abstract-only match should score 3');
   assert(s1 > s2, `title match (${s1}) should score higher than abstract-only match (${s2})`);
 });
 
 test('Scoring', 'no keyword match scores 1', () => {
   const score = scorepaperTest({ title: 'Quantum Physics', abstract: 'Laser beams.' }, ['social robots']);
   assertEqual(score, 1, 'unrelated paper should score 1');
+});
+
+test('Scoring', 'keyword in both title and abstract scores 5', () => {
+  const kws = ['social robots'];
+  const paper = { title: 'Social Robots in Education', abstract: 'Social robots improve outcomes.' };
+  assertEqual(scorepaperTest(paper, kws), 5, 'title + abstract match should score 5');
 });
 
 test('Scoring', 'multiple keyword matches scores higher', () => {
@@ -274,16 +286,18 @@ test('Scoring', 'no active keywords returns 1', () => {
   assertEqual(score, 1, 'no active keywords should return 1');
 });
 
-test('Scoring', 'score is always 1–5', () => {
+test('Scoring', 'score is always 1, 3, 4, or 5 (2 removed)', () => {
   const papers = [
-    { title: 'Social Robots and HRI', abstract: 'Social robots for human-robot interaction emotional contagion.' },
+    { title: 'Social Robots and HRI', abstract: 'Social robots for human-robot interaction.' },
     { title: 'Nothing relevant', abstract: 'Nothing here.' },
     { title: '', abstract: '' },
+    { title: 'Social robots', abstract: 'Social robots are studied here.' },
   ];
   const kws = ['social robots', 'human-robot interaction'];
   for (const p of papers) {
     const s = scorepaperTest(p, kws);
     assert(s >= 1 && s <= 5, `score ${s} out of range for "${p.title}"`);
+    assert(s !== 2, `score 2 should never occur (got ${s} for "${p.title}")`);
   }
 });
 

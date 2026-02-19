@@ -1470,23 +1470,33 @@ function scorepaper(paper) {
 
   const title    = (paper.title    || '').toLowerCase();
   const abstract = (paper.abstract || '').toLowerCase();
-  let matches = 0;
+
+  let matches    = 0;
+  let matchedKws = 0; // how many keywords appeared at all in this paper
 
   for (const kw of active) {
-    const kwLower = kw.toLowerCase();
-    if (title.includes(kwLower))    matches += 2;
-    if (abstract.includes(kwLower)) matches += 1;
+    const kwLower    = kw.toLowerCase();
+    const inTitle    = title.includes(kwLower);
+    const inAbstract = abstract.includes(kwLower);
+    if (inTitle || inAbstract) {
+      matchedKws++;
+      if (inTitle)    matches += 2; // title match worth more
+      if (inAbstract) matches += 1;
+    }
   }
 
-  const max   = active.length * 3;
-  const ratio = matches / max;
+  // No keyword found in this paper at all → not relevant
+  if (matchedKws === 0) return 1;
 
-  if (ratio === 0)   return 1;
-  if (ratio < 0.1)   return 1;
-  if (ratio < 0.25)  return 2;
-  if (ratio < 0.5)   return 3;
-  if (ratio < 0.75)  return 4;
-  return 5;
+  // Normalise only against keywords that actually appeared in this paper.
+  // This avoids penalising a "social robots" paper for not mentioning
+  // "emotional contagion" — keywords it was never fetched for.
+  // Ratio is always in [0.33, 1.0] when matchedKws > 0.
+  const ratio = matches / (matchedKws * 3);
+
+  if (ratio < 0.5)  return 3; // abstract-only match  (1/3 ≈ 0.33)
+  if (ratio < 0.75) return 4; // title-only match      (2/3 ≈ 0.67)
+  return 5;                   // title + abstract match (3/3 = 1.00)
 }
 
 
