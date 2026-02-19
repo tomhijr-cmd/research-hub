@@ -738,6 +738,15 @@
 
     .metric { display: inline-flex; align-items: center; gap: 3px; }
 
+    /* Clickable metric (citation count, ref count) */
+    .metric-link {
+      text-decoration: none;
+      cursor: pointer;
+      border-bottom: 1px dashed currentColor;
+      transition: opacity 0.12s;
+    }
+    .metric-link:hover { opacity: 0.75; }
+
     /* Citation count colour tiers */
     .cite-grey  { color: var(--text-muted); }
     .cite-blue  { color: #4a90d9; font-weight: 500; }
@@ -2568,11 +2577,18 @@ function buildPaperCardHtml(paper) {
     : citeCount < 200 ? 'cite-green'
     : 'cite-gold';
 
-  // Citation velocity
+  // Citation velocity — compute actual rate for the tooltip
   const vel      = velocityLabel(paper);
   const velClass = `velocity-${vel}`;
   const velIcon  = vel === 'trending' ? '🔥' : vel === 'growing' ? '↗' : '→';
   const velText  = vel === 'trending' ? 'Trending' : vel === 'growing' ? 'Growing' : 'Stable';
+  const velRate  = citationVelocity(paper);
+  const velRateStr = velRate >= 10 ? Math.round(velRate) : velRate.toFixed(1);
+  const velTooltip = vel === 'trending'
+    ? `🔥 Trending — ${velRateStr} citations/year. This paper is gaining citations rapidly.`
+    : vel === 'growing'
+    ? `↗ Growing — ${velRateStr} citations/year. Steadily building impact.`
+    : `→ Stable — ${velRateStr} citations/year. Cited occasionally but not accelerating.`;
 
   // Highly influential badge (inflCitations ≥ 10)
   const highlyInflBadge = (inflCount !== null && inflCount >= 10)
@@ -2592,12 +2608,25 @@ function buildPaperCardHtml(paper) {
     : '';
 
   // ── Metrics row ─────────────────────────────────────────────
+  // Citation count → SS "cited-by" page; ref count → SS references page
+  const ssBase      = `https://www.semanticscholar.org/paper/${esc(paperId)}`;
+  const citedByUrl  = `${ssBase}#citing-papers`;
+  const refsUrl     = `${ssBase}#references`;
+
   const metricsHtml = `
     <div class="paper-metrics">
-      ${citeCount !== null ? `<span class="metric ${citeBadgeClass}" title="Total citations">📄 ${citeCount}</span>` : ''}
-      ${inflCount !== null ? `<span class="metric" title="Influential citations — papers that substantially built on this work">⭐ ${inflCount} infl.</span>` : ''}
-      ${refCount  !== null ? `<span class="metric" title="Number of references (papers this work cites)">↙ ${refCount} refs</span>` : ''}
-      <span class="metric ${velClass}" title="Citation velocity: citations per year since publication">${velIcon} ${velText}</span>
+      ${citeCount !== null
+        ? `<a class="metric metric-link ${citeBadgeClass}" href="${citedByUrl}" target="_blank" rel="noopener"
+              title="Cited by ${citeCount} paper${citeCount !== 1 ? 's' : ''} — click to see who cited this on Semantic Scholar">📄 ${citeCount} cited</a>`
+        : ''}
+      ${inflCount !== null
+        ? `<span class="metric" title="Influential citations — ${inflCount} paper${inflCount !== 1 ? 's' : ''} that substantially built on this work (Semantic Scholar calculates this separately from total citations)">⭐ ${inflCount} infl.</span>`
+        : ''}
+      ${refCount  !== null
+        ? `<a class="metric metric-link" href="${refsUrl}" target="_blank" rel="noopener"
+              title="${refCount} reference${refCount !== 1 ? 's' : ''} — click to see what this paper cites on Semantic Scholar">↙ ${refCount} refs</a>`
+        : ''}
+      <span class="metric ${velClass}" title="${esc(velTooltip)}">${velIcon} ${velText}</span>
       ${highlyInflBadge}
       ${venueHtml}
     </div>
