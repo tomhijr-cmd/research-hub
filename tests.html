@@ -1499,6 +1499,288 @@ test('Reading List', 'migration v3: only SAVED papers are back-filled (liked sta
   assert(!rlContains(rl, 'p3'), 'p3 (neither) should NOT be in RL after migration');
 });
 
+// ════════════════════════════════════════════════════════════
+//  SECTION 17 — Panel toggle behaviour
+//  Tests the openPanel / closeAllPanels toggle-to-close contract.
+//  Uses lightweight DOM stubs — no full app needed.
+// ════════════════════════════════════════════════════════════
+
+// ── Minimal DOM stubs for panel toggle tests ─────────────────
+function makePanelDOM() {
+  // Returns a stub environment with open/close/isOpen/isActive helpers
+  const panelClasses = new Set();
+  const btnClasses   = new Set();
+  const panelEl = { classList: {
+    add(c)      { panelClasses.add(c); },
+    remove(c)   { panelClasses.delete(c); },
+    contains(c) { return panelClasses.has(c); },
+  }};
+  const btnEl = { classList: {
+    add(c)      { btnClasses.add(c); },
+    remove(c)   { btnClasses.delete(c); },
+    contains(c) { return btnClasses.has(c); },
+  }};
+
+  function openPanel() {
+    // mirrors openPanel(): closeAll first, then open target
+    panelEl.classList.remove('open');
+    btnEl.classList.remove('active');
+    panelEl.classList.add('open');
+    btnEl.classList.add('active');
+  }
+  function closeAllPanels() {
+    panelEl.classList.remove('open');
+    btnEl.classList.remove('active');
+  }
+  return {
+    panelEl, btnEl,
+    open:     openPanel,
+    close:    closeAllPanels,
+    isOpen:   () => panelEl.classList.contains('open'),
+    isActive: () => btnEl.classList.contains('active'),
+  };
+}
+
+test('Panel Toggle', 'openPanel adds .open class to panel', () => {
+  const env = makePanelDOM();
+  env.open();
+  assert(env.isOpen(), 'panel should have .open class after openPanel()');
+});
+
+test('Panel Toggle', 'openPanel adds .active class to toggle button', () => {
+  const env = makePanelDOM();
+  env.open();
+  assert(env.isActive(), 'button should have .active class after openPanel()');
+});
+
+test('Panel Toggle', 'closeAllPanels removes .open class', () => {
+  const env = makePanelDOM();
+  env.open();
+  env.close();
+  assert(!env.isOpen(), 'panel should not have .open after closeAllPanels()');
+});
+
+test('Panel Toggle', 'closeAllPanels removes .active class from button', () => {
+  const env = makePanelDOM();
+  env.open();
+  env.close();
+  assert(!env.isActive(), 'button should not have .active after closeAllPanels()');
+});
+
+test('Panel Toggle', 'clicking open panel closes it (toggle-to-close contract)', () => {
+  const env = makePanelDOM();
+  env.open();
+  assert(env.isOpen(), 'panel should be open');
+  // Simulate button click when already open — check flag then close
+  if (env.isOpen()) { env.close(); } else { env.open(); }
+  assert(!env.isOpen(), 'panel should be closed after second click');
+  assert(!env.isActive(), 'button should be inactive after close');
+});
+
+test('Panel Toggle', 'opening a panel when another is open closes the first', () => {
+  // Simulate two panels: keywords and insights
+  const kw  = makePanelDOM();
+  const ins = makePanelDOM();
+
+  function closeAll() { kw.close(); ins.close(); }
+  function openKeywords() { closeAll(); kw.panelEl.classList.add('open'); kw.btnEl.classList.add('active'); }
+  function openInsights()  { closeAll(); ins.panelEl.classList.add('open'); ins.btnEl.classList.add('active'); }
+
+  openKeywords();
+  assert(kw.isOpen(),   'keywords panel should be open');
+  assert(!ins.isOpen(), 'insights panel should be closed');
+
+  openInsights();
+  assert(!kw.isOpen(), 'keywords panel should be closed when insights opens');
+  assert(ins.isOpen(), 'insights panel should now be open');
+});
+
+test('Panel Toggle', 'panel starts closed — no .open or .active on fresh state', () => {
+  const env = makePanelDOM();
+  assert(!env.isOpen(),   'panel should start without .open');
+  assert(!env.isActive(), 'button should start without .active');
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 18 — saveKeywords / loadKeywords localStorage fallback
+//  Verifies the signed-out keyword persistence contract.
+//  Uses an in-memory localStorage stub (no real browser storage).
+// ════════════════════════════════════════════════════════════
+
+const KEYWORDS_LOCAL_KEY_T = 'researchhub_keywords_local'; // must match index.html
+
+function makeLocalStorageStub() {
+  const store = {};
+  return {
+    getItem:    (k)    => (k in store ? store[k] : null),
+    setItem:    (k, v) => { store[k] = String(v); },
+    removeItem: (k)    => { delete store[k]; },
+    _store: store,
+  };
+}
+
+function saveKeywordsTest(keywords, currentUser, ls) {
+  // Mirrors saveKeywords() signed-out branch from index.html
+  if (!currentUser) {
+    try { ls.setItem(KEYWORDS_LOCAL_KEY_T, JSON.stringify(keywords)); } catch(e) {}
+  }
+}
+
+function loadKeywordsTest(ls, defaultKeywords) {
+  // Mirrors loadKeywords() from index.html
+  try {
+    const saved = ls.getItem(KEYWORDS_LOCAL_KEY_T);
+    return saved ? JSON.parse(saved) : defaultKeywords.map(k => ({ ...k }));
+  } catch(e) {
+    return defaultKeywords.map(k => ({ ...k }));
+  }
+}
+
+test('Keywords localStorage', 'saveKeywords: signed-out writes to localStorage', () => {
+  const ls = makeLocalStorageStub();
+  const kws = [{ text: 'robots', active: true }];
+  saveKeywordsTest(kws, null /* signed out */, ls);
+  const raw = ls.getItem(KEYWORDS_LOCAL_KEY_T);
+  assert(raw !== null, 'localStorage should have been written');
+  const parsed = JSON.parse(raw);
+  assertLength(parsed, 1, 'stored array should have 1 keyword');
+  assertEqual(parsed[0].text, 'robots', 'stored keyword text should match');
+});
+
+test('Keywords localStorage', 'saveKeywords: signed-in does NOT write to localStorage', () => {
+  const ls = makeLocalStorageStub();
+  const kws = [{ text: 'robots', active: true }];
+  saveKeywordsTest(kws, { uid: 'user1' } /* signed in */, ls);
+  const raw = ls.getItem(KEYWORDS_LOCAL_KEY_T);
+  assertEqual(raw, null, 'localStorage should be empty when signed in (Firestore is canonical)');
+});
+
+test('Keywords localStorage', 'loadKeywords: returns stored keywords if present', () => {
+  const ls = makeLocalStorageStub();
+  const kws = [{ text: 'priming', active: false }, { text: 'hri', active: true }];
+  ls.setItem(KEYWORDS_LOCAL_KEY_T, JSON.stringify(kws));
+  const loaded = loadKeywordsTest(ls, []);
+  assertLength(loaded, 2, 'should load 2 keywords from localStorage');
+  assertEqual(loaded[0].text, 'priming', 'first keyword text');
+  assertEqual(loaded[1].active, true, 'second keyword active state');
+});
+
+test('Keywords localStorage', 'loadKeywords: returns defaults when nothing stored', () => {
+  const ls = makeLocalStorageStub(); // empty
+  const defaults = [{ text: 'social robots', active: true }];
+  const loaded = loadKeywordsTest(ls, defaults);
+  assertLength(loaded, 1, 'should return default keywords when localStorage is empty');
+  assertEqual(loaded[0].text, 'social robots', 'should match default keyword');
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 19 — One-shot UI tip guards
+//  Verifies SCORE_TIP_SEEN_KEY and WILDCARD_TIP_SEEN_KEY
+//  localStorage guard patterns (show-once semantics).
+//  Reuses makeLocalStorageStub() from Section 18.
+// ════════════════════════════════════════════════════════════
+
+const SCORE_TIP_SEEN_KEY_T    = 'researchhub_score_tip_seen';
+const WILDCARD_TIP_SEEN_KEY_T = 'researchhub_wildcard_tip_seen';
+
+// Mirror the guard pattern from maybeShowScoreExplainer() in index.html
+function shouldShowScoreTipTest(ls) {
+  return !ls.getItem(SCORE_TIP_SEEN_KEY_T);
+}
+function markScoreTipSeenTest(ls) {
+  ls.setItem(SCORE_TIP_SEEN_KEY_T, '1');
+}
+
+// Mirror the guard pattern for the wildcard tip in index.html
+function shouldShowWildcardTipTest(ls) {
+  return !ls.getItem(WILDCARD_TIP_SEEN_KEY_T);
+}
+function markWildcardTipSeenTest(ls) {
+  ls.setItem(WILDCARD_TIP_SEEN_KEY_T, '1');
+}
+
+test('One-Shot Tips', 'score tip: shows on first visit (key absent)', () => {
+  const ls = makeLocalStorageStub();
+  assert(shouldShowScoreTipTest(ls), 'score tip should show when key is absent');
+});
+
+test('One-Shot Tips', 'score tip: does not show after dismiss (key set)', () => {
+  const ls = makeLocalStorageStub();
+  markScoreTipSeenTest(ls);
+  assert(!shouldShowScoreTipTest(ls), 'score tip should not show once key is set');
+});
+
+test('One-Shot Tips', 'score tip: marking as seen is idempotent', () => {
+  const ls = makeLocalStorageStub();
+  markScoreTipSeenTest(ls);
+  markScoreTipSeenTest(ls); // call twice
+  assert(!shouldShowScoreTipTest(ls), 'tip should still be suppressed after double-mark');
+});
+
+test('One-Shot Tips', 'wildcard tip: shows on first visit (key absent)', () => {
+  const ls = makeLocalStorageStub();
+  assert(shouldShowWildcardTipTest(ls), 'wildcard tip should show when key is absent');
+});
+
+test('One-Shot Tips', 'wildcard tip: does not show after dismiss (key set)', () => {
+  const ls = makeLocalStorageStub();
+  markWildcardTipSeenTest(ls);
+  assert(!shouldShowWildcardTipTest(ls), 'wildcard tip should not show once key is set');
+});
+
+test('One-Shot Tips', 'score tip and wildcard tip are independent guards', () => {
+  const ls = makeLocalStorageStub();
+  markScoreTipSeenTest(ls);
+  // Score tip is suppressed; wildcard tip must still show (independent key)
+  assert(!shouldShowScoreTipTest(ls),   'score tip should be suppressed');
+  assert(shouldShowWildcardTipTest(ls), 'wildcard tip should still show (independent key)');
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION 20 — Like vs Save signal weights (P2-6 verification)
+//  Pins the exact signal arithmetic after the Like/Save split.
+//  Reuses computeSignalScoreTest() defined in Section 15.
+// ════════════════════════════════════════════════════════════
+
+test('Signal Weights', 'liked alone = +3 raw score (recency=1.0)', () => {
+  const score = computeSignalScoreTest({ liked: true, _fakeDate: new Date() });
+  assertEqual(score, 3, 'liked(+3) with full recency should equal 3');
+});
+
+test('Signal Weights', 'saved alone = +2 raw score (recency=1.0)', () => {
+  const score = computeSignalScoreTest({ saved: true, _fakeDate: new Date() });
+  assertEqual(score, 2, 'saved(+2) with full recency should equal 2');
+});
+
+test('Signal Weights', 'liked > saved (like is stronger positive signal)', () => {
+  const liked = computeSignalScoreTest({ liked: true, _fakeDate: new Date() });
+  const saved = computeSignalScoreTest({ saved: true, _fakeDate: new Date() });
+  assert(liked > saved, `liked signal (${liked}) should be stronger than saved (${saved})`);
+});
+
+test('Signal Weights', 'liked + saved = +5 (they are additive)', () => {
+  const score = computeSignalScoreTest({ liked: true, saved: true, _fakeDate: new Date() });
+  assertEqual(score, 5, 'liked(+3) + saved(+2) = 5 when both set');
+});
+
+test('Signal Weights', 'like signal is independent of Reading List state (no RL field in signal)', () => {
+  // computeSignalScore reads liked/saved/removed/expanded/clicked/secondsVisible only.
+  // There is no 'inReadingList' field — RL is a pure UI queue, not a learning signal.
+  const withRL    = computeSignalScoreTest({ liked: true, inReadingList: true,  _fakeDate: new Date() });
+  const withoutRL = computeSignalScoreTest({ liked: true, inReadingList: false, _fakeDate: new Date() });
+  assertEqual(withRL, withoutRL, 'inReadingList flag must not affect signal score');
+});
+
+test('Signal Weights', 'removed = -5, cancels liked+saved combined', () => {
+  const score = computeSignalScoreTest({ removed: true, liked: true, saved: true, _fakeDate: new Date() });
+  // removed(-5) + liked(+3) + saved(+2) = 0
+  assertEqual(score, 0, 'removed(-5) + liked(+3) + saved(+2) = 0');
+});
+
+
 // ── Wire up the run button ───────────────────────────────────
 document.getElementById('runBtn').addEventListener('click', runAll);
 
