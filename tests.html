@@ -1427,37 +1427,29 @@ test('Reading List', 'save→RL contract: un-saving does NOT re-add to RL', () =
   assert(!rlContains(rl, 'p1'), 'un-saving should not add paper to Reading List');
 });
 
-test('Reading List', 'like→RL contract: liking adds paper', () => {
+test('Reading List', 'like→RL contract: liking does NOT add to Reading List (stays in feed)', () => {
+  // P2-6 change: Like is now a pure learning signal — card stays in feed, NOT added to RL.
+  // Only Save moves a paper to the Reading List.
   const paper = makePaper('p1');
   const userActions = { p1: { liked: false } };
   const newVal = !userActions.p1.liked;
   let rl = makeReadingList();
+  // Like branch: update card display only — do NOT call rlAdd
   if (newVal && paper) {
-    rl = rlAdd(rl, paper);
+    // (addLearnedKeywords + rescore + updateCardActionDisplay — no RL add)
+    userActions.p1.liked = true;
   }
-  assert(rlContains(rl, 'p1'), 'liking a paper should add it to Reading List');
+  assert(!rlContains(rl, 'p1'), 'liking a paper should NOT add it to Reading List');
+  assertEqual(userActions.p1.liked, true, 'like signal should be set');
 });
 
-test('Reading List', 'undo like: removes from RL, un-likes, paper returns to feed', () => {
-  // Simulates the undo callback from showToastWithUndo for like action
+test('Reading List', 'like keeps paper in feed (no animateCardOut)', () => {
+  // After liking, the paper remains in the feed (not excluded by rlExcludeFeed)
   const paper = makePaper('p1');
   const allPapers = [makePaper('p2'), paper];
-  const userActions = { p1: { liked: true } };
-
-  // After like: paper is in RL, not in feed
-  let rl = makeReadingList();
-  rl = rlAdd(rl, paper);
-  let feed = rlExcludeFeed(allPapers, rl);
-  assertLength(feed, 1, 'p1 should be out of feed after liking');
-
-  // Undo: remove from RL, un-like
-  rl = rlRemove(rl, 'p1');
-  userActions.p1.liked = false;
-  feed = rlExcludeFeed(allPapers, rl);
-
-  assertLength(feed, 2, 'p1 should be back in feed after undo');
-  assert(!rlContains(rl, 'p1'), 'p1 should be removed from RL after undo');
-  assertEqual(userActions.p1.liked, false, 'like signal should be false after undo');
+  const rl = makeReadingList(); // RL is empty — like does not add to it
+  const feed = rlExcludeFeed(allPapers, rl);
+  assertLength(feed, 2, 'p1 should remain in feed after like (RL is empty)');
 });
 
 test('Reading List', 'undo save: removes from RL, un-saves, paper returns to feed', () => {
@@ -1482,26 +1474,27 @@ test('Reading List', 'undo save: removes from RL, un-saves, paper returns to fee
   assertEqual(userActions.p1.saved, false, 'save signal should be false after undo');
 });
 
-test('Reading List', 'migration v2: liked AND saved papers are picked up', () => {
-  // Simulates migrateOldLikesToReadingList() with v2 logic
+test('Reading List', 'migration v3: only SAVED papers are back-filled (liked stays in feed)', () => {
+  // Simulates migrateOldLikesToReadingList() with v3 logic (P2-6 change).
+  // Like is now a pure feed signal — only saved papers belong in the RL.
   const allPapers = [makePaper('p1'), makePaper('p2'), makePaper('p3')];
   const userActions = {
-    p1: { liked: true,  saved: false }, // liked — should migrate
-    p2: { liked: false, saved: true  }, // saved — should migrate (v2 fix)
+    p1: { liked: true,  saved: false }, // liked only — should NOT migrate to RL
+    p2: { liked: false, saved: true  }, // saved — SHOULD migrate to RL
     p3: { liked: false, saved: false }, // neither — should NOT migrate
   };
   let rl = makeReadingList();
 
   for (const [paperId, actions] of Object.entries(userActions)) {
-    const isLikedOrSaved = actions.liked || actions.saved;
-    if (isLikedOrSaved && !rlContains(rl, paperId)) {
+    // v3: only saved papers go to RL
+    if (actions.saved && !rlContains(rl, paperId)) {
       const paper = allPapers.find(p => p.paperId === paperId);
       if (paper) rl = [...rl, { paper, likedAt: new Date().toISOString() }];
     }
   }
 
-  assertLength(rl, 2, 'migration should import p1 (liked) and p2 (saved)');
-  assert(rlContains(rl, 'p1'), 'p1 (liked) should be in RL after migration');
+  assertLength(rl, 1, 'migration v3 should only import p2 (saved)');
+  assert(!rlContains(rl, 'p1'), 'p1 (liked only) should NOT be in RL — like stays in feed');
   assert(rlContains(rl, 'p2'), 'p2 (saved) should be in RL after migration');
   assert(!rlContains(rl, 'p3'), 'p3 (neither) should NOT be in RL after migration');
 });

@@ -258,12 +258,6 @@
       margin-bottom: 14px;
     }
 
-    /* Dim the add-keyword row when signed out */
-    .add-keyword-row.disabled {
-      opacity: 0.45;
-      pointer-events: none;
-    }
-
     /* ── Settings Panel ── */
     /* ── Side panels (My Topics + Feed Insights) ── */
     .side-panel {
@@ -312,6 +306,13 @@
       color: var(--text-muted);
       margin: 0 0 14px;
       line-height: 1.5;
+    }
+
+    /* ── Reading List button: active state when RL view is open ── */
+    #readingListToggle.active {
+      background: var(--accent-light);
+      border-color: var(--accent);
+      color: var(--accent);
     }
 
     /* ── Insights panel: ✦ button dot indicator ── */
@@ -804,8 +805,37 @@
       padding: 16px;
       box-shadow: var(--shadow);
       display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* Common filters section — horizontally wrapping */
+    .filter-common-section {
+      display: flex;
       flex-wrap: wrap;
       gap: 16px 24px;
+    }
+
+    /* Divider + toggle button for advanced filters */
+    .filter-advanced-toggle-row {
+      width: 100%;
+      padding-top: 12px;
+      margin-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    #filterAdvancedToggle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      padding: 0;
+      text-decoration: none;
+    }
+    #filterAdvancedToggle:hover { color: var(--text); }
+
+    /* Advanced filters section — same horizontal wrap layout */
+    .filter-advanced-section {
+      flex-wrap: wrap;
+      gap: 16px 24px;
+      padding-top: 12px;
     }
 
     .filter-group {
@@ -1008,6 +1038,45 @@
     [data-theme="dark"] .score-badge.high { background: #1a2e1c; }
     [data-theme="dark"] .score-badge.mid  { background: #2c2718; }
 
+    /* ── Score explainer first-visit callout ── */
+    .paper-card-badges { position: relative; }
+    .score-explainer-callout {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 8px 12px;
+      font-size: 0.78rem;
+      color: var(--text);
+      white-space: nowrap;
+      box-shadow: var(--shadow);
+      z-index: 50;
+      line-height: 1.5;
+    }
+    /* Upward arrow */
+    .score-explainer-callout::before {
+      content: '';
+      position: absolute;
+      bottom: 100%;
+      right: 14px;
+      border: 5px solid transparent;
+      border-bottom-color: var(--accent);
+    }
+    .score-explainer-dismiss {
+      display: block;
+      margin-top: 6px;
+      font-size: 0.72rem;
+      color: var(--accent);
+      text-decoration: underline;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: inherit;
+    }
+
     .paper-meta {
       font-size: 0.78rem;
       color: var(--text-muted);
@@ -1149,6 +1218,26 @@
     .paper-card--wildcard {
       border-left: 3px solid #5bbcde;
     }
+    /* First-visit one-liner explaining what the Explore badge means */
+    .wildcard-first-tip {
+      display: inline-block;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-left: 8px;
+      line-height: 1.4;
+      vertical-align: middle;
+    }
+    .wildcard-first-tip button {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      cursor: pointer;
+      padding: 0 0 0 4px;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .wildcard-first-tip button:hover { color: var(--text); }
 
     /* ── Research Profile section ── */
     .research-profile {
@@ -1296,6 +1385,7 @@
       padding-top: 12px;
       border-top: 1px solid var(--border);
       flex-wrap: wrap;
+      position: relative; /* anchor for .signin-popover */
     }
 
     .action-btn {
@@ -1322,11 +1412,66 @@
     .save-btn.active  { background: var(--score-high); }
     .hide-btn.active  { background: #888; }
 
-    /* Disabled when signed out */
+    /* Dimmed when signed out — pointer-events kept ON so click triggers sign-in popover */
     .action-btn.disabled-action {
-      opacity: 0.35;
+      opacity: 0.45;
+    }
+
+    /* Hover hint on Save button — "Moves to Reading List" */
+    .action-btn { position: relative; }
+    .action-btn-hint {
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: var(--surface);
+      font-size: 0.72rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
       pointer-events: none;
-      cursor: default;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 10;
+    }
+    .action-btn:hover .action-btn-hint { opacity: 1; }
+
+    /* Sign-in popover — appears above the clicked action button when signed out */
+    .signin-popover {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: var(--surface);
+      border-radius: var(--radius);
+      padding: 8px 12px;
+      font-size: 0.78rem;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      z-index: 200;
+      line-height: 1.5;
+      animation: fadeInUp 0.15s ease;
+    }
+    .signin-popover a {
+      color: #7ecfe0; /* light teal readable on dark bg */
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    /* Downward arrow */
+    .signin-popover::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: var(--text);
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
 
     /* ── Pagination load-more ── */
@@ -1453,8 +1598,8 @@
         My Topics
       </button>
       <!-- Feed Insights: signal-mark (matches brand logo) -->
-      <button class="btn-icon" id="insightsToggle" title="Feed Insights — what the system learned about you" aria-label="Feed Insights">
-        <svg width="18" height="18" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <button class="btn-secondary" id="insightsToggle" title="Feed Insights — what the system learned about you">
+        <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <circle cx="11" cy="16" r="5" fill="currentColor"/>
           <line x1="17.2" y1="16" x2="23" y2="16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
           <line x1="16.8" y1="12.8" x2="21.5" y2="8.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
@@ -1462,9 +1607,10 @@
           <line x1="17" y1="11.5" x2="20.5" y2="6.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
           <line x1="17" y1="20.5" x2="20.5" y2="25.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
         </svg>
+        Insights
       </button>
       <!-- Reading List: papers liked and queued for reading -->
-      <button class="btn-secondary" id="readingListToggle" title="Reading List — papers you've liked">
+      <button class="btn-secondary" id="readingListToggle" title="Reading List — papers you've saved for later">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         Reading List <span class="rl-badge" id="readingListBadge" style="display:none"></span>
       </button>
@@ -1484,7 +1630,7 @@
       </p>
       <!-- Sign-in hint shown only when signed out -->
       <p class="signin-notice" id="signinNotice" style="display:none;">
-        Sign in with Google to save your keywords across devices.
+        Your keywords are saved locally. Sign in with Google to sync them across devices.
       </p>
       <!-- Keyword chips rendered here by JS -->
       <div class="keyword-list" id="keywordList"></div>
@@ -1538,56 +1684,66 @@
       <button id="clearAllFiltersBtn" class="btn-text" style="display:none">Clear all</button>
     </div>
     <div id="filterPanelBody" class="filter-panel-body" style="display:none">
-      <div class="filter-group">
-        <label class="filter-group-label" for="sortSelect">Sort</label>
-        <select id="sortSelect" class="sort-select">
-          <option value="newest">Newest first</option>
-          <option value="oldest">Oldest first</option>
-          <option value="relevance">Highest relevance</option>
-          <option value="cited">Most cited</option>
-          <option value="influential">Most influential citations</option>
-          <option value="trending">Trending (citation velocity)</option>
-        </select>
+      <!-- Common filters — always visible when panel is open -->
+      <div class="filter-common-section">
+        <div class="filter-group">
+          <label class="filter-group-label" for="sortSelect">Sort</label>
+          <select id="sortSelect" class="sort-select">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="relevance">Highest relevance</option>
+            <option value="cited">Most cited</option>
+            <option value="influential">Most influential citations</option>
+            <option value="trending">Trending (citation velocity)</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-group-label">Relevance</span>
+          <div id="scoreFilterGroup" class="filter-check-row"></div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-group-label">Date</span>
+          <div id="dateFilterGroup" class="filter-radio-row"></div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-group-label">Status</span>
+          <div id="statusFilterGroup" class="filter-radio-row"></div>
+        </div>
       </div>
-      <div class="filter-group">
-        <span class="filter-group-label">Relevance</span>
-        <div id="scoreFilterGroup" class="filter-check-row"></div>
+      <!-- Advanced filters toggle row -->
+      <div class="filter-advanced-toggle-row">
+        <button class="btn-text" id="filterAdvancedToggle">Advanced filters ▸</button>
       </div>
-      <div class="filter-group">
-        <span class="filter-group-label">Date</span>
-        <div id="dateFilterGroup" class="filter-radio-row"></div>
-      </div>
-      <div class="filter-group">
-        <span class="filter-group-label">Status</span>
-        <div id="statusFilterGroup" class="filter-radio-row"></div>
-      </div>
-      <div class="filter-group">
-        <span class="filter-group-label">Keyword</span>
-        <div id="keywordFilterGroup" class="filter-check-row"></div>
-      </div>
-      <div class="filter-group">
-        <span class="filter-group-label">Citations</span>
-        <div id="citationFilterGroup" class="filter-radio-row"></div>
-      </div>
-      <div class="filter-group">
-        <span class="filter-group-label">Influential</span>
-        <div id="inflCitationFilterGroup" class="filter-radio-row"></div>
-      </div>
-      <div class="filter-group">
-        <span class="filter-group-label">Velocity</span>
-        <div id="velocityFilterGroup" class="filter-radio-row"></div>
-      </div>
-      <div class="filter-group">
-        <span class="filter-group-label">Access</span>
-        <div id="openAccessFilterGroup" class="filter-check-row"></div>
-      </div>
-      <div class="filter-group">
-        <span class="filter-group-label">Type</span>
-        <div id="pubTypeFilterGroup" class="filter-radio-row"></div>
-      </div>
-      <div class="filter-group">
-        <span class="filter-group-label">Field</span>
-        <div id="fieldsFilterGroup" class="filter-check-row"></div>
+      <!-- Advanced filters — collapsed by default -->
+      <div class="filter-advanced-section" id="filterAdvancedSection" style="display:none">
+        <div class="filter-group">
+          <span class="filter-group-label">Keyword</span>
+          <div id="keywordFilterGroup" class="filter-check-row"></div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-group-label">Citations</span>
+          <div id="citationFilterGroup" class="filter-radio-row"></div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-group-label">Influential</span>
+          <div id="inflCitationFilterGroup" class="filter-radio-row"></div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-group-label">Velocity</span>
+          <div id="velocityFilterGroup" class="filter-radio-row"></div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-group-label">Access</span>
+          <div id="openAccessFilterGroup" class="filter-check-row"></div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-group-label">Type</span>
+          <div id="pubTypeFilterGroup" class="filter-radio-row"></div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-group-label">Field</span>
+          <div id="fieldsFilterGroup" class="filter-check-row"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1648,11 +1804,14 @@ let currentUser = null;
 
 // ── Constants ──────────────────────────────────────────────
 
-const THEME_KEY         = 'researchhub_theme';
-const LAST_FETCH_KEY    = 'researchhub_last_fetch';
-const HEALTH_KEY        = 'researchhub_health';
-const SEEN_PAPERS_KEY   = 'researchhub_seen_papers';
-const READING_LIST_KEY  = 'researchhub_reading_list'; // { paper, likedAt }[]
+const THEME_KEY            = 'researchhub_theme';
+const LAST_FETCH_KEY       = 'researchhub_last_fetch';
+const HEALTH_KEY           = 'researchhub_health';
+const SEEN_PAPERS_KEY      = 'researchhub_seen_papers';
+const READING_LIST_KEY     = 'researchhub_reading_list'; // { paper, likedAt }[]
+const KEYWORDS_LOCAL_KEY   = 'researchhub_keywords_local'; // localStorage fallback when signed out
+const SCORE_TIP_SEEN_KEY   = 'researchhub_score_tip_seen';
+const WILDCARD_TIP_SEEN_KEY= 'researchhub_wildcard_tip_seen';
 const FETCH_TTL_MS    = 24 * 60 * 60 * 1000;
 const PAGE_SIZE       = 20;
 
@@ -1797,9 +1956,9 @@ function renderAuthUI() {
 
     document.getElementById('signInBtn').addEventListener('click', signIn);
 
-    const row    = document.getElementById('addKeywordRow');
     const notice = document.getElementById('signinNotice');
-    if (row)    row.classList.add('disabled');
+    // Add-keyword row is fully enabled when signed out — keywords save to localStorage.
+    // Sign-in notice tells users what changes when they do sign in.
     if (notice) notice.style.display = 'block';
   }
 }
@@ -2163,11 +2322,14 @@ auth.onAuthStateChanged(async (user) => {
 
   if (user) {
     await loadKeywordsFromFirestore();
+    // Firestore is now canonical — discard any localStorage draft made while signed out
+    localStorage.removeItem(KEYWORDS_LOCAL_KEY);
     await loadUserActions();
     await loadUserSignals();
     await loadLearnedKeywords();
   } else {
-    keywords        = DEFAULT_KEYWORDS.map(k => ({ ...k }));
+    // Signed out: load from localStorage (allows local keyword customisation without sign-in)
+    loadKeywords();
     userActions     = {};
     userSignals     = {};
     learnedKeywords = [];
@@ -2192,12 +2354,25 @@ auth.onAuthStateChanged(async (user) => {
 // ── localStorage helpers ─────────────────────────────────────
 
 function loadKeywords() {
-  keywords = DEFAULT_KEYWORDS.map(k => ({ ...k }));
+  // When signed out, load from localStorage (allows local customisation without sign-in).
+  // When signed in, Firestore is canonical — this function is only called for the signed-out path.
+  try {
+    const saved = localStorage.getItem(KEYWORDS_LOCAL_KEY);
+    keywords = saved ? JSON.parse(saved) : DEFAULT_KEYWORDS.map(k => ({ ...k }));
+  } catch(e) {
+    keywords = DEFAULT_KEYWORDS.map(k => ({ ...k }));
+  }
 }
 
 function saveKeywords() {
   if (currentUser) {
+    // Signed in: persist to Firestore (canonical store)
     saveKeywordsToFirestore();
+  } else {
+    // Signed out: persist to localStorage so edits survive page reload
+    try {
+      localStorage.setItem(KEYWORDS_LOCAL_KEY, JSON.stringify(keywords));
+    } catch(e) { /* storage quota — skip */ }
   }
 }
 
@@ -2360,6 +2535,8 @@ function openReadingListView() {
   ['activeKeywordsBar','searchBarContainer','filterPanel','feedHeader','statusBar','paperFeed']
     .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
   document.getElementById('readingListView').style.display = 'block';
+  // Highlight the Reading List button to show it is the active view
+  document.getElementById('readingListToggle')?.classList.add('active');
   renderReadingList();
 }
 
@@ -2369,20 +2546,22 @@ function closeReadingListView() {
   document.getElementById('readingListView').style.display = 'none';
   ['activeKeywordsBar','searchBarContainer','filterPanel','feedHeader','statusBar','paperFeed']
     .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
+  document.getElementById('readingListToggle')?.classList.remove('active');
 }
 
 // One-time migration: add previously-liked OR saved papers (before RL existed, or before
 // Save was wired to RL) into the reading list.
 // Runs after both userActions and allPapers are available.
 function migrateOldLikesToReadingList() {
-  // v2 key: covers liked AND saved (v1 only covered liked)
-  const migrationKey = 'researchhub_rl_migrated_v2';
+  // v3 key: Reading List is now Save-only (Like is a pure learning signal, stays in feed).
+  // Back-fill any previously-saved papers that aren't already in the RL.
+  const migrationKey = 'researchhub_rl_migrated_v3';
   if (localStorage.getItem(migrationKey)) return;
 
   let migrated = 0;
   for (const [paperId, actions] of Object.entries(userActions)) {
-    const isLikedOrSaved = actions.liked || actions.saved;
-    if (isLikedOrSaved && !readingList.some(e => e.paper.paperId === paperId)) {
+    // Only saved papers belong in the Reading List (liked papers stay in feed)
+    if (actions.saved && !readingList.some(e => e.paper.paperId === paperId)) {
       const paper = allPapers.find(p => p.paperId === paperId);
       if (paper) {
         readingList.push({ paper, likedAt: new Date().toISOString() });
@@ -2468,7 +2647,7 @@ function renderReadingList() {
       <div class="rl-empty-state">
         <div class="icon">📚</div>
         <p>Your reading list is empty.</p>
-        <p style="font-size:0.8rem;margin-top:4px">Like a paper in the feed to add it here.</p>
+        <p style="font-size:0.8rem;margin-top:4px">Save a paper in the feed to add it here.</p>
       </div>`;
     return;
   }
@@ -2657,6 +2836,16 @@ function bindEvents() {
   document.getElementById('filterToggleBtn').addEventListener('click', () => {
     const body = document.getElementById('filterPanelBody');
     body.style.display = body.style.display === 'none' ? 'flex' : 'none';
+  });
+
+  // Advanced filters toggle inside the filter panel body
+  document.getElementById('filterAdvancedToggle')?.addEventListener('click', () => {
+    const sec = document.getElementById('filterAdvancedSection');
+    const btn = document.getElementById('filterAdvancedToggle');
+    if (!sec || !btn) return;
+    const isOpen = sec.style.display !== 'none';
+    sec.style.display = isOpen ? 'none' : 'flex';
+    btn.textContent = isOpen ? 'Advanced filters ▸' : 'Advanced filters ▴';
   });
 
   // Clear all filters
@@ -3143,6 +3332,24 @@ function renderFilterPanel() {
   renderPubTypeFilterGroup();
   renderFieldsFilterGroup();
   renderActiveFilterTags();
+
+  // Auto-expand advanced section if any advanced filter is currently active,
+  // so users returning with an active filter don't lose their context.
+  const hasAdvancedActive =
+    (filterState.keywords     && filterState.keywords.length > 0)   ||
+    filterState.citations     > 0                                    ||
+    filterState.inflCitations > 0                                    ||
+    (filterState.velocity     && filterState.velocity !== 'any')     ||
+    filterState.openAccess                                           ||
+    (filterState.pubType      && filterState.pubType !== 'all')      ||
+    (filterState.fields       && filterState.fields.length > 0);
+
+  const advSec = document.getElementById('filterAdvancedSection');
+  const advBtn = document.getElementById('filterAdvancedToggle');
+  if (advSec && advBtn && hasAdvancedActive) {
+    advSec.style.display = 'flex';
+    advBtn.textContent   = 'Advanced filters ▴';
+  }
 }
 
 function renderScoreFilterGroup() {
@@ -3544,9 +3751,51 @@ function clearAllFilters() {
 //  USER ACTIONS: Like / Save / Hide / Copy citation
 // ════════════════════════════════════════════════════════════
 
+// Show a contextual sign-in popover anchored above the clicked action button.
+// Triggered when a signed-out user clicks Like, Save, or Hide.
+function showSigninPopover(paperId, action) {
+  // Remove any existing popover first
+  document.querySelectorAll('.signin-popover').forEach(el => el.remove());
+
+  const card = document.querySelector(`[data-paperid="${paperId}"]`);
+  if (!card) return;
+  const btn = card.querySelector(`[data-action="${action}"]`);
+  if (!btn) return;
+
+  const pop = document.createElement('div');
+  pop.className = 'signin-popover';
+  pop.innerHTML = `Sign in to save your actions &nbsp;<a id="signinPopoverLink">Sign in with Google</a>`;
+
+  // Anchor the popover to the button (button needs relative positioning)
+  btn.style.position = 'relative';
+  btn.appendChild(pop);
+
+  document.getElementById('signinPopoverLink')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    signIn();
+    pop.remove();
+  });
+
+  // Auto-dismiss after 4s
+  const timer = setTimeout(() => pop.remove(), 4000);
+  // Dismiss on any outside click
+  const dismiss = (e) => {
+    if (!pop.contains(e.target)) {
+      pop.remove();
+      clearTimeout(timer);
+      document.removeEventListener('click', dismiss);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', dismiss), 0);
+}
+
 // Route an action button click to the correct handler.
 function handlePaperAction(paperId, action) {
-  if (!currentUser) return; // buttons are disabled when signed out
+  if (!currentUser) {
+    // Show contextual sign-in prompt instead of silently failing
+    showSigninPopover(paperId, action);
+    return;
+  }
 
   const paper = allPapers.find(p => p.paperId === paperId);
 
@@ -3556,26 +3805,15 @@ function handlePaperAction(paperId, action) {
     saveUserAction(paperId, 'liked', newVal);
     recordSignal(paperId, 'liked', newVal);
     if (newVal && paper) {
-      // Positive signal: learn keywords from this paper
+      // Like = pure learning signal. The card STAYS in the feed.
+      // Keywords are learned and the score is updated in-place.
       addLearnedKeywords(paper);
-      // Rescore so score badge is accurate when stored in RL
       const updated = { ...paper, score: scoreWithSignals(paper) };
       allPapers = allPapers.map(p => p.paperId === paperId ? updated : p);
-
-      // Add to Reading List and animate card out of feed
-      addToReadingList(updated);
-      animateCardOut(paperId, () => applyAndRender());
-
-      // Show undo toast — undo removes from RL + un-likes
-      showToastWithUndo('Added to Reading List', () => {
-        removeFromReadingList(paperId, /* silent */ true);
-        saveUserAction(paperId, 'liked', false);
-        recordSignal(paperId, 'liked', false);
-        allPapers = allPapers.map(p => p.paperId === paperId ? { ...p, score: scoreWithSignals(p) } : p);
-        applyAndRender();
-      });
+      updateCardActionDisplay(paperId);
+      showToast('Liked — this helps tune your feed');
     } else if (!newVal) {
-      // Un-liking manually (edge case) — just update the card display
+      // Un-liking: restore default state
       updateCardActionDisplay(paperId);
       if (filterState.status === 'liked') applyAndRender();
     }
@@ -3762,8 +4000,15 @@ function buildPaperCardHtml(paper) {
   // ── Score badge ─────────────────────────────────────────────
   const scoreClass       = paper.score >= 4 ? 'high' : paper.score >= 2 ? 'mid' : '';
   const scoreExplanation = buildScoreExplanation(paper).join('\n');
-  const wildcardBadge    = paper.isWildcard
-    ? `<span class="wildcard-badge" title="Explore: outside your usual keywords but highly cited">🔍 Explore</span>`
+  const wildcardTipSeen = localStorage.getItem(WILDCARD_TIP_SEEN_KEY);
+  const wildcardBadge   = paper.isWildcard
+    ? `<span class="wildcard-badge" title="Explore: outside your usual keywords but highly cited">🔍 Explore</span>${
+        !wildcardTipSeen
+          ? `<span class="wildcard-first-tip">A highly-cited paper outside your keywords, shown for discovery.
+               <button onclick="localStorage.setItem('${WILDCARD_TIP_SEEN_KEY}','1');this.closest('.wildcard-first-tip').remove()" title="Dismiss">×</button>
+             </span>`
+          : ''
+      }`
     : '';
 
   // ── Citation metrics ────────────────────────────────────────
@@ -3880,7 +4125,7 @@ function buildPaperCardHtml(paper) {
         </h2>
         <div class="paper-card-badges">
           ${wildcardBadge}
-          <span class="score-badge ${scoreClass}" title="★ ${paper.score}/5&#10;${esc(scoreExplanation)}">
+          <span class="score-badge ${scoreClass}" title="Relevance score: ${paper.score}/5 (matches your keywords — not a star rating)&#10;${esc(scoreExplanation)}">
             ★ ${paper.score}/5
           </span>
         </div>
@@ -3900,9 +4145,12 @@ function buildPaperCardHtml(paper) {
       ${kwTagsHtml}
       <div class="paper-actions">
         <button class="action-btn like-btn${a.liked ? ' active' : ''}${disabledCls}"
-                data-paperid="${esc(paperId)}" data-action="like">${svgHeart}</button>
+                data-paperid="${esc(paperId)}" data-action="like"
+                title="Like — signals relevance to your interests. Stays in feed.">${svgHeart}</button>
         <button class="action-btn save-btn${a.saved ? ' active' : ''}${disabledCls}"
-                data-paperid="${esc(paperId)}" data-action="save">${svgBookmark}</button>
+                data-paperid="${esc(paperId)}" data-action="save"
+                title="Save — adds to your Reading List. Removes from feed.">
+          <span class="action-btn-hint">Moves to Reading List</span>${svgBookmark}</button>
         <button class="action-btn hide-btn${a.hidden ? ' active' : ''}${disabledCls}"
                 data-paperid="${esc(paperId)}" data-action="hide">${svgEye}</button>
         <button class="action-btn copy-btn"
@@ -3976,6 +4224,33 @@ function renderPapers() {
   if (loadMoreBtn) {
     loadMoreBtn.addEventListener('click', loadMorePapers);
   }
+
+  // First-visit score badge explainer (shown once, gated by localStorage)
+  maybeShowScoreExplainer();
+}
+
+// Show a one-time callout below the first score badge explaining what ★ X/5 means.
+// Dismisses permanently when the user clicks "Got it".
+function maybeShowScoreExplainer() {
+  if (localStorage.getItem(SCORE_TIP_SEEN_KEY)) return;
+  const firstBadge = document.querySelector('.paper-card .score-badge');
+  if (!firstBadge) return;
+  const badgesContainer = firstBadge.closest('.paper-card-badges');
+  if (!badgesContainer) return;
+
+  const callout = document.createElement('div');
+  callout.className = 'score-explainer-callout';
+  callout.innerHTML = `
+    <strong>★ X/5</strong> = how closely this paper matches your keywords.
+    Not a star rating — generated automatically.
+    <button class="score-explainer-dismiss" id="scoreDismissBtn">Got it</button>
+  `;
+  badgesContainer.appendChild(callout);
+
+  document.getElementById('scoreDismissBtn')?.addEventListener('click', () => {
+    localStorage.setItem(SCORE_TIP_SEEN_KEY, '1');
+    callout.remove();
+  });
 }
 
 // Returns an appropriate empty-state HTML string.
