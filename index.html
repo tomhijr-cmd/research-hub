@@ -1134,7 +1134,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 4px 12px;
-      margin: 8px 0 4px;
+      margin: 8px 0 8px;
       font-size: 0.75rem;
       color: var(--text-muted);
       align-items: center;
@@ -1142,7 +1142,7 @@
 
     .metric { display: inline-flex; align-items: center; gap: 3px; }
 
-    /* Clickable metric (citation count, ref count) */
+    /* Clickable metric (citation count) */
     .metric-link {
       text-decoration: none;
       cursor: pointer;
@@ -1160,32 +1160,28 @@
     [data-theme="dark"] .cite-blue  { color: #6aabda; }
     [data-theme="dark"] .cite-gold  { color: #e0a800; }
 
-    /* Citation velocity */
-    .velocity-trending { color: #cc3344; font-weight: 600; }
+    /* Citation velocity — amber instead of red (alarm-free "trending" signal) */
+    .velocity-trending { color: #c9700a; font-weight: 600; }
     .velocity-growing  { color: var(--score-high); font-weight: 500; }
     .velocity-stable   { color: var(--text-muted); }
 
-    /* Highly influential badge */
-    .highly-influential-badge {
-      background: #fff3cd;
-      color: #7d5a00;
-      border-radius: 10px;
-      padding: 1px 8px;
-      font-weight: 600;
-      font-size: 0.72rem;
-    }
-    [data-theme="dark"] .highly-influential-badge { background: #2d2300; color: #e0a800; }
-
-    /* Venue name — italic, truncated */
+    /* Venue name — lives inline in meta row (author · date · venue) */
     .venue-name {
       font-style: italic;
       color: var(--text-muted);
-      max-width: 240px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: inline-block;
-      vertical-align: middle;
+    }
+
+    /* ── Chip groups (keyword matches + fields of study) ── */
+    .chip-group { margin-top: 8px; }
+    .chip-group-label {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      opacity: 0.7;
+      margin-bottom: 4px;
     }
 
     /* Fields of study tags */
@@ -1193,7 +1189,6 @@
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
-      margin: 4px 0 6px;
     }
     .field-tag {
       background: var(--tag-off);
@@ -1203,9 +1198,8 @@
       font-size: 0.70rem;
     }
 
-    /* On mobile, hide venue + field tags to save space */
+    /* On mobile, hide field tags to save space */
     @media (max-width: 600px) {
-      .venue-name { display: none; }
       .field-tags { display: none; }
     }
 
@@ -1378,20 +1372,27 @@
 
     .expand-btn:hover { text-decoration: underline; opacity: 1; }
 
-    /* Keyword match tags under abstract */
+    /* Keyword match tags — margin handled by parent .chip-group */
     .paper-keyword-tags {
-      margin-top: 8px;
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
     }
 
+    /* Keyword match chips — same neutral bg as field chips; accent dot distinguishes them */
     .matched-kw-tag {
-      background: var(--accent-light);
-      color: var(--accent);
+      background: var(--tag-off);
+      color: var(--tag-off-text);
       border-radius: 10px;
-      padding: 1px 8px;
-      font-size: 0.72rem;
+      padding: 1px 8px 1px 6px;
+      font-size: 0.70rem;
+    }
+    .matched-kw-tag::before {
+      content: '●';
+      font-size: 0.45rem;
+      color: var(--accent);
+      margin-right: 4px;
+      vertical-align: middle;
     }
 
     /* ── Paper action buttons ── */
@@ -4047,9 +4048,9 @@ function buildPaperCardHtml(paper) {
     : '';
 
   // ── Citation metrics ────────────────────────────────────────
-  const citeCount  = typeof paper.citationCount          === 'number' ? paper.citationCount          : null;
+  const citeCount  = typeof paper.citationCount            === 'number' ? paper.citationCount            : null;
   const inflCount  = typeof paper.influentialCitationCount === 'number' ? paper.influentialCitationCount : null;
-  const refCount   = typeof paper.referenceCount         === 'number' ? paper.referenceCount         : null;
+  // referenceCount is fetched from API but not displayed (manuscript-writing metric, low value for discovery)
 
   // Colour tier for total citations
   const citeBadgeClass = citeCount === null ? ''
@@ -4070,29 +4071,27 @@ function buildPaperCardHtml(paper) {
     : vel === 'growing'
     ? `↗ Growing — ${velRateStr} citations/year. Steadily building impact.`
     : `→ Stable — ${velRateStr} citations/year. Cited occasionally but not accelerating.`;
-
-  // Highly influential badge (inflCitations ≥ 10)
-  const highlyInflBadge = (inflCount !== null && inflCount >= 10)
-    ? `<span class="metric highly-influential-badge" title="This paper has ≥10 influential citations">🏆 Highly Influential</span>`
-    : '';
+  // Note: Highly Influential badge removed — inflCount already shown inline in metrics row
 
   // ── Venue ───────────────────────────────────────────────────
+  // Venue moves into the meta row (author · date · venue), not the metrics row
   const venueName = paper.publicationVenue?.name || '';
-  const venueHtml = venueName
-    ? `<span class="metric venue-name" title="${esc(venueName)}">${esc(venueName.length > 45 ? venueName.slice(0, 42) + '…' : venueName)}</span>`
+  const venueInMetaHtml = venueName
+    ? `&nbsp;·&nbsp; <span class="venue-name" title="${esc(venueName)}">${esc(venueName.length > 40 ? venueName.slice(0, 37) + '…' : venueName)}</span>`
     : '';
 
-  // ── Fields of study (max 3 tags) ────────────────────────────
-  const fields    = (paper.fieldsOfStudy || []).slice(0, 3);
+  // ── Fields of study (max 3 tags) — shown under "Topics" label ──
+  const fields = (paper.fieldsOfStudy || []).slice(0, 3);
   const fieldTagsHtml = fields.length
-    ? `<div class="field-tags">${fields.map(f => `<span class="field-tag">${esc(f)}</span>`).join('')}</div>`
+    ? `<div class="chip-group">
+         <span class="chip-group-label">Topics</span>
+         <div class="field-tags">${fields.map(f => `<span class="field-tag">${esc(f)}</span>`).join('')}</div>
+       </div>`
     : '';
 
   // ── Metrics row ─────────────────────────────────────────────
-  // Citation count → SS "cited-by" page; ref count → SS references page
-  const ssBase      = `https://www.semanticscholar.org/paper/${esc(paperId)}`;
-  const citedByUrl  = `${ssBase}#citing-papers`;
-  const refsUrl     = `${ssBase}#references`;
+  const ssBase     = `https://www.semanticscholar.org/paper/${esc(paperId)}`;
+  const citedByUrl = `${ssBase}#citing-papers`;
 
   const metricsHtml = `
     <div class="paper-metrics">
@@ -4103,15 +4102,8 @@ function buildPaperCardHtml(paper) {
       ${inflCount !== null
         ? `<span class="metric" title="Influential citations — ${inflCount} paper${inflCount !== 1 ? 's' : ''} that substantially built on this work (Semantic Scholar calculates this separately from total citations)">⭐ ${inflCount} infl.</span>`
         : ''}
-      ${refCount  !== null
-        ? `<a class="metric metric-link" href="${refsUrl}" target="_blank" rel="noopener"
-              title="${refCount} reference${refCount !== 1 ? 's' : ''} — click to see what this paper cites on Semantic Scholar">↙ ${refCount} refs</a>`
-        : ''}
       <span class="metric ${velClass}" title="${esc(velTooltip)}">${velIcon} ${velText}</span>
-      ${highlyInflBadge}
-      ${venueHtml}
-    </div>
-    ${fieldTagsHtml}`;
+    </div>`;
 
   // ── Abstract ─────────────────────────────────────────────────
   const rawAbstract  = paper.abstract || '';
@@ -4122,10 +4114,13 @@ function buildPaperCardHtml(paper) {
   // ── Title ─────────────────────────────────────────────────────
   const titleHtml = highlightSearchTerms(esc(paper.title || 'Untitled'), searchQuery);
 
-  // ── Matched keyword tags ──────────────────────────────────────
+  // ── Matched keyword tags — shown under "Your keywords" label ──
   const matched    = getMatchedKeywords(paper);
   const kwTagsHtml = matched.length
-    ? `<div class="paper-keyword-tags">${matched.map(k => `<span class="matched-kw-tag">${esc(k)}</span>`).join('')}</div>`
+    ? `<div class="chip-group">
+         <span class="chip-group-label">Your keywords</span>
+         <div class="paper-keyword-tags">${matched.map(k => `<span class="matched-kw-tag">${esc(k)}</span>`).join('')}</div>
+       </div>`
     : '';
 
   // ── Unread indicator ─────────────────────────────────────────
@@ -4170,6 +4165,7 @@ function buildPaperCardHtml(paper) {
            title="View author profile on Semantic Scholar">${esc(firstAuthor)}</a>${authorCount > 1
           ? ` <span class="author-count">+${authorCount - 1} author${authorCount > 2 ? 's' : ''}</span>` : ''}
         &nbsp;·&nbsp; ${esc(yearDisplay)}${esc(yearsAgoStr)}
+        ${venueInMetaHtml}
         &nbsp; ${oaBadge} ${pdfLink}
       </div>
       <p class="paper-abstract" id="abstract-${esc(paperId)}">${abstractHtml}</p>
@@ -4178,6 +4174,7 @@ function buildPaperCardHtml(paper) {
         : ''}
       ${metricsHtml}
       ${kwTagsHtml}
+      ${fieldTagsHtml}
       <div class="paper-actions">
         <button class="action-btn like-btn${a.liked ? ' active' : ''}${disabledCls}"
                 data-paperid="${esc(paperId)}" data-action="like"
