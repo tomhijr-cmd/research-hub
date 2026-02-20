@@ -43,13 +43,17 @@ module.exports = async function handler(req, res) {
  */
 function fetchFromSemanticScholar(path) {
   return new Promise((resolve, reject) => {
-    // Include the API key if set as a Vercel environment variable.
-    // This gives a higher rate limit (100 req/s vs 1 req/s unauthenticated).
-    // To enable: set S2_API_KEY in the Vercel project settings → Environment Variables.
-    const headers = { 'User-Agent': 'ResearchHub/1.0' };
-    if (process.env.S2_API_KEY) {
-      headers['x-api-key'] = process.env.S2_API_KEY;
+    // Always use the authenticated API key for the higher rate limit (100 req/s vs 1 req/s).
+    // S2_API_KEY must be set in Vercel project settings → Environment Variables.
+    // If it's missing, log a clear warning so it's visible in Vercel function logs.
+    const apiKey = process.env.S2_API_KEY;
+    if (!apiKey) {
+      console.warn('[papers] WARNING: S2_API_KEY is not set. Falling back to unauthenticated requests (1 req/s rate limit — likely to be throttled).');
     }
+    const headers = {
+      'User-Agent': 'ResearchHub/1.0',
+      ...(apiKey ? { 'x-api-key': apiKey } : {}),
+    };
 
     const options = {
       hostname: SS_API,
