@@ -308,8 +308,10 @@
       line-height: 1.5;
     }
 
-    /* ── Reading List button: active state when RL view is open ── */
-    #readingListToggle.active {
+    /* ── Header panel buttons: active state while their panel is open ── */
+    #readingListToggle.active,
+    #keywordsToggle.active,
+    #insightsToggle.active {
       background: var(--accent-light);
       border-color: var(--accent);
       color: var(--accent);
@@ -956,6 +958,21 @@
       color: var(--text-muted);
     }
 
+    /* Refresh button inside the feed-header — compact, muted, paired with timestamp */
+    .feed-refresh-btn {
+      padding: 3px 6px;
+      color: var(--text-muted);
+      border-color: transparent;
+      background: transparent;
+      opacity: 0.7;
+    }
+    .feed-refresh-btn:hover {
+      opacity: 1;
+      color: var(--accent);
+      border-color: var(--border);
+      background: var(--tag-bg);
+    }
+
     /* "Show hidden" toggle label */
     .toggle-label {
       display: inline-flex;
@@ -1582,12 +1599,6 @@
     <div class="header-actions">
       <!-- Auth area: shows sign-in button OR avatar + name + sign-out -->
       <div class="auth-area" id="authArea"></div>
-      <!-- Refresh button — its inner span spins while loading -->
-      <button class="btn-icon" id="refreshBtn" title="Fetch new papers" aria-label="Refresh papers">
-        <span id="refreshIcon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        </span>
-      </button>
       <!-- Dark/light mode toggle -->
       <button class="btn-icon" id="themeBtn" title="Toggle dark/light mode" aria-label="Toggle theme">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -1756,6 +1767,12 @@
     </div>
     <div class="feed-header-right">
       <span id="feedLastRefreshed" class="feed-last-refreshed"></span>
+      <!-- Refresh button lives here — semantically paired with the "last fetched" timestamp -->
+      <button class="btn-icon feed-refresh-btn" id="refreshBtn" title="Fetch new papers" aria-label="Refresh papers">
+        <span id="refreshIcon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </span>
+      </button>
       <label class="toggle-label">
         <input type="checkbox" id="showHiddenToggle"> Show hidden
       </label>
@@ -2768,33 +2785,51 @@ function showToastWithUndo(message, onUndo, duration = 4000) {
 
 // Open a named side-panel (closes any already-open panel first).
 function openPanel(id) {
-  ['keywordsPanel', 'insightsPanel'].forEach(pid => {
-    document.getElementById(pid)?.classList.remove('open');
-  });
+  // If the Reading List full-page view is showing, restore the feed first
+  if (readingListOpen) closeReadingListView();
+
+  // Close all panels and strip their active button states
+  closeAllPanels();
+
+  // Open the target panel and highlight its toggle button
   document.getElementById(id)?.classList.add('open');
+  const btnId = id === 'keywordsPanel' ? 'keywordsToggle' : 'insightsToggle';
+  document.getElementById(btnId)?.classList.add('active');
 }
 
-// Close all side-panels.
+// Close all side-panels and clear their active button highlights.
 function closeAllPanels() {
   ['keywordsPanel', 'insightsPanel'].forEach(pid => {
     document.getElementById(pid)?.classList.remove('open');
   });
+  document.getElementById('keywordsToggle')?.classList.remove('active');
+  document.getElementById('insightsToggle')?.classList.remove('active');
 }
 
 
 // ── Event binding ─────────────────────────────────────────────
 
 function bindEvents() {
-  // Header: My Topics panel
+  // Header: My Topics panel — clicking again while open closes it
   document.getElementById('keywordsToggle').addEventListener('click', () => {
-    openPanel('keywordsPanel');
-    renderKeywordChips();
+    const panel = document.getElementById('keywordsPanel');
+    if (panel?.classList.contains('open')) {
+      closeAllPanels();
+    } else {
+      openPanel('keywordsPanel');
+      renderKeywordChips();
+    }
   });
 
-  // Header: Feed Insights panel
+  // Header: Feed Insights panel — clicking again while open closes it
   document.getElementById('insightsToggle').addEventListener('click', () => {
-    openPanel('insightsPanel');
-    renderInsightsPanel();
+    const panel = document.getElementById('insightsPanel');
+    if (panel?.classList.contains('open')) {
+      closeAllPanels();
+    } else {
+      openPanel('insightsPanel');
+      renderInsightsPanel();
+    }
   });
 
   // Header: Reading List view
