@@ -1406,34 +1406,77 @@
       position: relative; /* anchor for .signin-popover */
     }
 
+    /* ── Action button base — shared layout only, no visual defaults ── */
     .action-btn {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      border-radius: 14px;
-      padding: 4px 10px;
       font-size: 0.78rem;
       cursor: pointer;
-      transition: background 0.12s, color 0.12s, border-color 0.12s;
+      font-family: inherit;
+      transition: background 0.12s, color 0.12s, border-color 0.12s, opacity 0.12s;
       user-select: none;
+      /* visual defaults reset — each button type sets its own */
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      border-radius: 0;
+      padding: 4px 0;
     }
 
-    .action-btn:hover { opacity: 1; background: var(--tag-bg); color: var(--text); }
+    /* ── Like — PRIMARY: filled accent pill ── */
+    .like-btn {
+      background: var(--accent);
+      color: #fff;
+      border: 1.5px solid var(--accent);
+      border-radius: 14px;
+      padding: 4px 12px;
+      font-weight: 500;
+    }
+    .like-btn:hover { background: #1f5490; border-color: #1f5490; color: #fff; }
+    .like-btn.active {
+      background: #1f5490;
+      border-color: #1f5490;
+      color: #fff;
+    }
 
-    /* Active (toggled on) state */
-    .action-btn.active { color: #fff; border-color: transparent; }
+    /* ── Save — SECONDARY: outlined accent pill ── */
+    .save-btn {
+      background: transparent;
+      color: var(--accent);
+      border: 1.5px solid var(--accent);
+      border-radius: 14px;
+      padding: 4px 12px;
+    }
+    .save-btn:hover { background: var(--accent-light); }
+    .save-btn.active {
+      background: var(--accent-light);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
 
-    .like-btn.active  { background: #e35; }
-    .save-btn.active  { background: var(--score-high); }
-    .hide-btn.active  { background: #888; }
+    /* ── Hide — TERTIARY: ghost text, no pill ── */
+    .hide-btn {
+      color: var(--text-muted);
+      padding: 4px 6px;
+    }
+    .hide-btn:hover { color: var(--text); }
+    .hide-btn.active { color: var(--text); }
+
+    /* ── Cite — UTILITY: ghost text, no pill ── */
+    .copy-btn {
+      color: var(--text-muted);
+      padding: 4px 6px;
+    }
+    .copy-btn:hover { color: var(--text); text-decoration: underline; }
+
+    /* Dark mode adjustments for Like (filled) */
+    [data-theme="dark"] .like-btn        { background: var(--accent); border-color: var(--accent); }
+    [data-theme="dark"] .like-btn:hover,
+    [data-theme="dark"] .like-btn.active { background: #3a7fc1; border-color: #3a7fc1; }
 
     /* Dimmed when signed out — pointer-events kept ON so click triggers sign-in popover */
-    .action-btn.disabled-action {
-      opacity: 0.45;
-    }
+    .action-btn.disabled-action { opacity: 0.45; }
 
     /* Hover hint on Save button — "Moves to Reading List" */
     .action-btn { position: relative; }
