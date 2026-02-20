@@ -1498,6 +1498,129 @@
     }
     .action-btn:hover .action-btn-hint { opacity: 1; }
 
+    /* ── Citation modal ── */
+    .cite-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .cite-modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      width: min(560px, 100%);
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .cite-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px 12px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .cite-modal-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .cite-modal-close {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .cite-modal-close:hover { color: var(--text); background: var(--tag-off); }
+    /* Tabs */
+    .cite-modal-tabs {
+      display: flex;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .cite-tab {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 10px 14px 8px;
+      cursor: pointer;
+      margin-bottom: -1px;
+      transition: color 0.12s, border-color 0.12s;
+      font-family: inherit;
+    }
+    .cite-tab:hover { color: var(--text); }
+    .cite-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    /* Body */
+    .cite-modal-body {
+      padding: 16px 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+    }
+    .cite-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      resize: none;
+      min-height: 90px;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .cite-textarea:focus { outline: none; }
+    /* Footer: Copied! left, Copy button right */
+    .cite-modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .cite-copied-msg {
+      font-size: 0.78rem;
+      color: var(--score-high);
+      flex: 1;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .cite-copied-msg.visible { opacity: 1; }
+    .cite-copy-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 6px 16px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      flex-shrink: 0;
+      transition: opacity 0.12s;
+    }
+    .cite-copy-btn:hover { opacity: 0.85; }
+
     /* Sign-in popover — appears above the clicked action button when signed out */
     .signin-popover {
       position: absolute;
@@ -1712,6 +1835,27 @@
 
   <!-- ── Toast notification container ── -->
   <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+  <!-- ── Citation modal — populated by showCiteModal() ── -->
+  <div id="citeModal" class="cite-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="citeModalTitle">
+    <div class="cite-modal">
+      <div class="cite-modal-header">
+        <span class="cite-modal-title" id="citeModalTitle">Cite Paper</span>
+        <button class="cite-modal-close" id="citeModalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="cite-modal-tabs" role="tablist">
+        <button class="cite-tab active" id="citeTabApa"    role="tab" aria-selected="true"  aria-controls="citePanelApa">APA</button>
+        <button class="cite-tab"        id="citeTabBibtex" role="tab" aria-selected="false" aria-controls="citePanelBibtex">BibTeX</button>
+      </div>
+      <div class="cite-modal-body">
+        <textarea class="cite-textarea" id="citeTextarea" readonly rows="5" spellcheck="false"></textarea>
+        <div class="cite-modal-footer">
+          <span class="cite-copied-msg" id="citeCopiedMsg" aria-live="polite"></span>
+          <button class="cite-copy-btn" id="citeCopyBtn">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ── Reading List view (swaps in place of the feed) ── -->
   <div id="readingListView" style="display:none" aria-label="Reading List"></div>
@@ -3941,7 +4085,7 @@ function handlePaperAction(paperId, action) {
       if (filterState.status === 'hidden') applyAndRender();
     }
   } else if (action === 'copy') {
-    copyCitation(paperId);
+    showCiteModal(paperId);
   }
 }
 
@@ -3976,28 +4120,132 @@ function updateCardActionDisplay(paperId) {
   }
 }
 
-// Format an APA-ish citation and copy to clipboard.
-function copyCitation(paperId) {
+// ── Citation formatters ──────────────────────────────────
+
+// Build a properly formatted APA citation string from a paper object.
+// Missing fields are omitted gracefully — never "undefined".
+function buildApa(paper) {
+  const rawAuthors = paper.authors || [];
+  const fmtAuthors = rawAuthors.map(a => {
+    const parts = (a.name || '').trim().split(/\s+/);
+    if (parts.length < 2) return a.name || '';
+    const last     = parts[parts.length - 1];
+    const initials = parts.slice(0, -1).map(p => p[0] + '.').join(' ');
+    return `${last}, ${initials}`;
+  });
+  let authorStr = '';
+  if (fmtAuthors.length === 1)     authorStr = fmtAuthors[0];
+  else if (fmtAuthors.length > 1)  authorStr = fmtAuthors.slice(0, -1).join(', ') + ', & ' + fmtAuthors[fmtAuthors.length - 1];
+
+  const year    = paper.year || (paper.publicationDate ? new Date(paper.publicationDate).getFullYear() : null);
+  const title   = paper.title   || '';
+  const journal = paper.publicationVenue?.name || '';
+  const doi     = paper.externalIds?.DOI || '';
+
+  let citation = '';
+  if (authorStr) citation += authorStr + ' ';
+  citation += year ? `(${year}). ` : '(n.d.). ';
+  if (title)   citation += `${title}. `;
+  if (journal) citation += `${journal}. `;
+  if (doi)     citation += `https://doi.org/${doi}`;
+
+  return citation.trim();
+}
+
+// Build a BibTeX entry from a paper object.
+function buildBibtex(paper) {
+  const firstAuthorLast = (() => {
+    const name  = (paper.authors?.[0]?.name || 'unknown').trim();
+    const parts = name.split(/\s+/);
+    return parts[parts.length - 1].toLowerCase().replace(/[^a-z]/g, '');
+  })();
+  const year    = paper.year || (paper.publicationDate ? new Date(paper.publicationDate).getFullYear() : '');
+  const key     = `${firstAuthorLast}${year}`;
+  const authors = (paper.authors || []).map(a => a.name || '').filter(Boolean).join(' and ');
+  const title   = paper.title || '';
+  const journal = paper.publicationVenue?.name || '';
+  const doi     = paper.externalIds?.DOI || '';
+
+  const lines = [`@article{${key},`];
+  if (authors) lines.push(`  author  = {${authors}},`);
+  if (title)   lines.push(`  title   = {${title}},`);
+  if (journal) lines.push(`  journal = {${journal}},`);
+  if (year)    lines.push(`  year    = {${year}},`);
+  if (doi)     lines.push(`  doi     = {${doi}},`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// ── Citation modal ────────────────────────────────────────
+
+// Open the citation modal for a given paper, pre-populated with APA format.
+function showCiteModal(paperId) {
   const paper = allPapers.find(p => p.paperId === paperId);
   if (!paper) return;
 
-  const authors = (paper.authors || []).map(a => a.name).join(', ') || 'Unknown authors';
-  const year    = paper.year || 'n.d.';
-  const title   = paper.title || 'Untitled';
-  const doi     = paper.externalIds?.DOI;
-  const url     = doi ? `https://doi.org/${doi}` : paper.url || '';
-  const citation = `${authors} (${year}). ${title}.${url ? ' ' + url : ''}`;
+  const modal     = document.getElementById('citeModal');
+  const textarea  = document.getElementById('citeTextarea');
+  const tabApa    = document.getElementById('citeTabApa');
+  const tabBibtex = document.getElementById('citeTabBibtex');
+  const copyBtn   = document.getElementById('citeCopyBtn');
+  const copiedMsg = document.getElementById('citeCopiedMsg');
+  const closeBtn  = document.getElementById('citeModalClose');
+  if (!modal || !textarea) return;
 
-  navigator.clipboard.writeText(citation).then(() => {
-    const btn = document.querySelector(`[data-paperid="${paperId}"] .copy-btn`);
-    if (btn) {
-      const orig = btn.textContent;
-      btn.textContent = '✓ Copied!';
-      setTimeout(() => { btn.textContent = orig; }, 2000);
-    }
-  }).catch(err => {
-    console.error('Clipboard error:', err);
-  });
+  function setTab(format) {
+    const isApa = format === 'apa';
+    tabApa.classList.toggle('active', isApa);
+    tabBibtex.classList.toggle('active', !isApa);
+    tabApa.setAttribute('aria-selected', isApa);
+    tabBibtex.setAttribute('aria-selected', !isApa);
+    textarea.value = isApa ? buildApa(paper) : buildBibtex(paper);
+    // BibTeX entries are taller — expand textarea minimum height
+    textarea.style.minHeight = isApa ? '90px' : '160px';
+    // Reset the Copied! confirmation on tab switch
+    copiedMsg.classList.remove('visible');
+    copiedMsg.textContent = '';
+  }
+
+  function closeModal() {
+    modal.style.display = 'none';
+    document.removeEventListener('keydown', onEsc);
+    // Detach one-time backdrop listener safely (already consumed if backdrop was clicked)
+    modal.removeEventListener('click', onBackdrop);
+  }
+
+  function onEsc(e) {
+    if (e.key === 'Escape') closeModal();
+  }
+
+  function onBackdrop(e) {
+    if (e.target === modal) closeModal();
+  }
+
+  // Re-wire event listeners fresh each open (avoids stacking from previous papers)
+  tabApa.onclick    = () => setTab('apa');
+  tabBibtex.onclick = () => setTab('bibtex');
+  closeBtn.onclick  = closeModal;
+
+  copyBtn.onclick = () => {
+    navigator.clipboard.writeText(textarea.value).then(() => {
+      copiedMsg.textContent = '✅ Copied!';
+      copiedMsg.classList.add('visible');
+      setTimeout(() => {
+        copiedMsg.classList.remove('visible');
+        setTimeout(() => { copiedMsg.textContent = ''; }, 350);
+      }, 1500);
+    }).catch(() => {
+      // Clipboard API unavailable (e.g. non-HTTPS) — select text as fallback
+      textarea.select();
+    });
+  };
+
+  modal.addEventListener('click', onBackdrop);
+  document.addEventListener('keydown', onEsc);
+
+  // Open on APA tab
+  setTab('apa');
+  modal.style.display = 'flex';
 }
 
 
