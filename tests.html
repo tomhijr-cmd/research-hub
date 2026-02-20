@@ -1275,6 +1275,237 @@ test('Learning Algorithm', 'pickWildcard: excludes already-shown papers', () => 
 });
 
 
+// ════════════════════════════════════════════════════════════
+//  SECTION 16 — Reading List logic
+//  Tests the addToReadingList / removeFromReadingList contract
+//  and the feed-exclusion rule — all in pure JS, no DOM.
+// ════════════════════════════════════════════════════════════
+
+// ── Standalone Reading List helpers (mirroring index.html logic) ──
+
+function makeReadingList() { return []; }
+
+function rlAdd(list, paper) {
+  if (!paper) return list;
+  if (list.some(e => e.paper.paperId === paper.paperId)) return list; // no duplicates
+  return [{ paper, likedAt: new Date().toISOString() }, ...list];    // newest first
+}
+
+function rlRemove(list, paperId) {
+  return list.filter(e => e.paper.paperId !== paperId);
+}
+
+function rlContains(list, paperId) {
+  return list.some(e => e.paper.paperId === paperId);
+}
+
+// Simulates the feed-exclusion rule in applyFiltersAndSort():
+// papers already in the Reading List are hidden from the main feed.
+function rlExcludeFeed(allPapers, readingList) {
+  return allPapers.filter(p => !rlContains(readingList, p.paperId));
+}
+
+function makePaper(id, title = 'Test Paper') {
+  return { paperId: id, title, score: 3, authors: [], abstract: '' };
+}
+
+// ── Tests ──
+
+test('Reading List', 'addToReadingList: adds paper to empty list', () => {
+  const paper = makePaper('p1');
+  const list = rlAdd(makeReadingList(), paper);
+  assertLength(list, 1, 'should have 1 entry');
+  assertEqual(list[0].paper.paperId, 'p1', 'entry should be p1');
+});
+
+test('Reading List', 'addToReadingList: prepends (newest first)', () => {
+  let list = makeReadingList();
+  list = rlAdd(list, makePaper('p1'));
+  list = rlAdd(list, makePaper('p2'));
+  assertEqual(list[0].paper.paperId, 'p2', 'p2 was added last, should be first');
+  assertEqual(list[1].paper.paperId, 'p1', 'p1 was added first, should be second');
+});
+
+test('Reading List', 'addToReadingList: ignores duplicate paper', () => {
+  let list = makeReadingList();
+  list = rlAdd(list, makePaper('p1'));
+  list = rlAdd(list, makePaper('p1')); // add same paper again
+  assertLength(list, 1, 'duplicate should not be added');
+});
+
+test('Reading List', 'addToReadingList: records likedAt timestamp', () => {
+  const before = Date.now();
+  const list = rlAdd(makeReadingList(), makePaper('p1'));
+  const after = Date.now();
+  const ts = new Date(list[0].likedAt).getTime();
+  assert(ts >= before && ts <= after, 'likedAt should be a recent timestamp');
+});
+
+test('Reading List', 'addToReadingList: null paper is a no-op', () => {
+  const list = rlAdd(makeReadingList(), null);
+  assertLength(list, 0, 'null paper should not add an entry');
+});
+
+test('Reading List', 'removeFromReadingList: removes correct paper', () => {
+  let list = makeReadingList();
+  list = rlAdd(list, makePaper('p1'));
+  list = rlAdd(list, makePaper('p2'));
+  list = rlRemove(list, 'p1');
+  assertLength(list, 1, 'should have 1 entry after removal');
+  assert(!rlContains(list, 'p1'), 'p1 should be gone');
+  assert(rlContains(list, 'p2'), 'p2 should remain');
+});
+
+test('Reading List', 'removeFromReadingList: removing non-existent id is safe', () => {
+  let list = makeReadingList();
+  list = rlAdd(list, makePaper('p1'));
+  list = rlRemove(list, 'does-not-exist');
+  assertLength(list, 1, 'list length should be unchanged');
+});
+
+test('Reading List', 'removeFromReadingList: does NOT affect like signal (userActions independent)', () => {
+  // Simulates the contract: RL removal must not touch userActions
+  const userActions = { p1: { liked: true, saved: false } };
+  let list = makeReadingList();
+  list = rlAdd(list, makePaper('p1'));
+  list = rlRemove(list, 'p1');
+  // userActions must be untouched — RL is purely a UI queue
+  assert(userActions.p1.liked === true, 'like signal must be preserved after RL removal');
+  assertLength(list, 0, 'RL should be empty');
+});
+
+test('Reading List', 'feed exclusion: liked paper disappears from feed', () => {
+  const papers = [makePaper('p1'), makePaper('p2'), makePaper('p3')];
+  let rl = makeReadingList();
+  rl = rlAdd(rl, makePaper('p1'));
+  const feed = rlExcludeFeed(papers, rl);
+  assertLength(feed, 2, 'feed should have 2 papers (p1 excluded)');
+  assert(!feed.some(p => p.paperId === 'p1'), 'p1 should be excluded from feed');
+  assert(feed.some(p => p.paperId === 'p2'), 'p2 should still be in feed');
+  assert(feed.some(p => p.paperId === 'p3'), 'p3 should still be in feed');
+});
+
+test('Reading List', 'feed exclusion: empty RL shows all papers', () => {
+  const papers = [makePaper('p1'), makePaper('p2')];
+  const feed = rlExcludeFeed(papers, makeReadingList());
+  assertLength(feed, 2, 'all papers should appear when RL is empty');
+});
+
+test('Reading List', 'feed exclusion: multiple RL entries excluded', () => {
+  const papers = [makePaper('p1'), makePaper('p2'), makePaper('p3')];
+  let rl = makeReadingList();
+  rl = rlAdd(rl, makePaper('p1'));
+  rl = rlAdd(rl, makePaper('p3'));
+  const feed = rlExcludeFeed(papers, rl);
+  assertLength(feed, 1, 'only p2 should remain in feed');
+  assertEqual(feed[0].paperId, 'p2', 'remaining paper should be p2');
+});
+
+test('Reading List', 'save→RL contract: saving adds paper (not just like)', () => {
+  // Simulates the fixed handlePaperAction save branch:
+  // when newVal===true, addToReadingList must be called.
+  // We verify the logic contract independently.
+  const paper = makePaper('p1');
+  const userActions = { p1: { saved: false } };
+  const newVal = !userActions.p1.saved; // toggle: false→true
+  let rl = makeReadingList();
+  if (newVal && paper) {
+    rl = rlAdd(rl, paper);
+  }
+  assert(rlContains(rl, 'p1'), 'saving a paper should add it to Reading List');
+});
+
+test('Reading List', 'save→RL contract: un-saving does NOT re-add to RL', () => {
+  // Un-saving (newVal===false) must not call addToReadingList
+  const paper = makePaper('p1');
+  const userActions = { p1: { saved: true } };
+  const newVal = !userActions.p1.saved; // toggle: true→false (un-save)
+  let rl = makeReadingList();
+  if (newVal && paper) {
+    rl = rlAdd(rl, paper); // this branch should NOT be reached
+  }
+  assert(!rlContains(rl, 'p1'), 'un-saving should not add paper to Reading List');
+});
+
+test('Reading List', 'like→RL contract: liking adds paper', () => {
+  const paper = makePaper('p1');
+  const userActions = { p1: { liked: false } };
+  const newVal = !userActions.p1.liked;
+  let rl = makeReadingList();
+  if (newVal && paper) {
+    rl = rlAdd(rl, paper);
+  }
+  assert(rlContains(rl, 'p1'), 'liking a paper should add it to Reading List');
+});
+
+test('Reading List', 'undo like: removes from RL, un-likes, paper returns to feed', () => {
+  // Simulates the undo callback from showToastWithUndo for like action
+  const paper = makePaper('p1');
+  const allPapers = [makePaper('p2'), paper];
+  const userActions = { p1: { liked: true } };
+
+  // After like: paper is in RL, not in feed
+  let rl = makeReadingList();
+  rl = rlAdd(rl, paper);
+  let feed = rlExcludeFeed(allPapers, rl);
+  assertLength(feed, 1, 'p1 should be out of feed after liking');
+
+  // Undo: remove from RL, un-like
+  rl = rlRemove(rl, 'p1');
+  userActions.p1.liked = false;
+  feed = rlExcludeFeed(allPapers, rl);
+
+  assertLength(feed, 2, 'p1 should be back in feed after undo');
+  assert(!rlContains(rl, 'p1'), 'p1 should be removed from RL after undo');
+  assertEqual(userActions.p1.liked, false, 'like signal should be false after undo');
+});
+
+test('Reading List', 'undo save: removes from RL, un-saves, paper returns to feed', () => {
+  // Simulates the undo callback from showToastWithUndo for save action
+  const paper = makePaper('p1');
+  const allPapers = [makePaper('p2'), paper];
+  const userActions = { p1: { saved: true } };
+
+  // After save: paper is in RL, not in feed
+  let rl = makeReadingList();
+  rl = rlAdd(rl, paper);
+  let feed = rlExcludeFeed(allPapers, rl);
+  assertLength(feed, 1, 'p1 should be out of feed after saving');
+
+  // Undo: remove from RL, un-save
+  rl = rlRemove(rl, 'p1');
+  userActions.p1.saved = false;
+  feed = rlExcludeFeed(allPapers, rl);
+
+  assertLength(feed, 2, 'p1 should be back in feed after undo');
+  assert(!rlContains(rl, 'p1'), 'p1 should be removed from RL after undo');
+  assertEqual(userActions.p1.saved, false, 'save signal should be false after undo');
+});
+
+test('Reading List', 'migration v2: liked AND saved papers are picked up', () => {
+  // Simulates migrateOldLikesToReadingList() with v2 logic
+  const allPapers = [makePaper('p1'), makePaper('p2'), makePaper('p3')];
+  const userActions = {
+    p1: { liked: true,  saved: false }, // liked — should migrate
+    p2: { liked: false, saved: true  }, // saved — should migrate (v2 fix)
+    p3: { liked: false, saved: false }, // neither — should NOT migrate
+  };
+  let rl = makeReadingList();
+
+  for (const [paperId, actions] of Object.entries(userActions)) {
+    const isLikedOrSaved = actions.liked || actions.saved;
+    if (isLikedOrSaved && !rlContains(rl, paperId)) {
+      const paper = allPapers.find(p => p.paperId === paperId);
+      if (paper) rl = [...rl, { paper, likedAt: new Date().toISOString() }];
+    }
+  }
+
+  assertLength(rl, 2, 'migration should import p1 (liked) and p2 (saved)');
+  assert(rlContains(rl, 'p1'), 'p1 (liked) should be in RL after migration');
+  assert(rlContains(rl, 'p2'), 'p2 (saved) should be in RL after migration');
+  assert(!rlContains(rl, 'p3'), 'p3 (neither) should NOT be in RL after migration');
+});
+
 // ── Wire up the run button ───────────────────────────────────
 document.getElementById('runBtn').addEventListener('click', runAll);
 

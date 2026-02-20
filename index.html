@@ -2371,15 +2371,18 @@ function closeReadingListView() {
     .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
 }
 
-// One-time migration: add previously-liked papers (before RL existed) into the reading list.
+// One-time migration: add previously-liked OR saved papers (before RL existed, or before
+// Save was wired to RL) into the reading list.
 // Runs after both userActions and allPapers are available.
 function migrateOldLikesToReadingList() {
-  const migrationKey = 'researchhub_rl_migrated';
+  // v2 key: covers liked AND saved (v1 only covered liked)
+  const migrationKey = 'researchhub_rl_migrated_v2';
   if (localStorage.getItem(migrationKey)) return;
 
   let migrated = 0;
   for (const [paperId, actions] of Object.entries(userActions)) {
-    if (actions.liked && !readingList.some(e => e.paper.paperId === paperId)) {
+    const isLikedOrSaved = actions.liked || actions.saved;
+    if (isLikedOrSaved && !readingList.some(e => e.paper.paperId === paperId)) {
       const paper = allPapers.find(p => p.paperId === paperId);
       if (paper) {
         readingList.push({ paper, likedAt: new Date().toISOString() });
@@ -3582,12 +3585,28 @@ function handlePaperAction(paperId, action) {
     saveUserAction(paperId, 'saved', newVal);
     recordSignal(paperId, 'saved', newVal);
     if (newVal && paper) {
+      // Positive signal: learn keywords and rescore
       addLearnedKeywords(paper);
       const updated = { ...paper, score: scoreWithSignals(paper) };
       allPapers = allPapers.map(p => p.paperId === paperId ? updated : p);
+
+      // Save also adds to Reading List and animates card out of feed
+      addToReadingList(updated);
+      animateCardOut(paperId, () => applyAndRender());
+
+      // Undo toast — undo removes from RL + un-saves
+      showToastWithUndo('Saved to Reading List', () => {
+        removeFromReadingList(paperId, /* silent */ true);
+        saveUserAction(paperId, 'saved', false);
+        recordSignal(paperId, 'saved', false);
+        allPapers = allPapers.map(p => p.paperId === paperId ? { ...p, score: scoreWithSignals(p) } : p);
+        applyAndRender();
+      });
+    } else if (!newVal) {
+      // Un-saving manually (e.g. from a future saved-filter view) — just update display
+      updateCardActionDisplay(paperId);
+      if (filterState.status === 'saved') applyAndRender();
     }
-    updateCardActionDisplay(paperId);
-    if (filterState.status === 'saved') applyAndRender();
   } else if (action === 'hide') {
     const current = userActions[paperId]?.hidden || false;
     const newVal  = !current;
