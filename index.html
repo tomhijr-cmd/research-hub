@@ -3,7 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Research Hub — HRI Paper Feed</title>
+  <title>Fieldwork — HRI Paper Feed</title>
+
+  <!-- ── Google Fonts: Lora (serif headings) + Inter (UI / body text) ── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+  <!-- ── Favicon: Fieldwork signal-mark ── -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='11' cy='16' r='5' fill='%231A5F6E'/%3E%3Cline x1='17' y1='16' x2='23' y2='16' stroke='%231A5F6E' stroke-width='2.5' stroke-linecap='round'/%3E%3Cline x1='16.5' y1='12.5' x2='21.5' y2='8' stroke='%231A5F6E' stroke-width='2.5' stroke-linecap='round'/%3E%3Cline x1='16.5' y1='19.5' x2='21.5' y2='24' stroke='%231A5F6E' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
 
   <!-- ── Firebase SDK (compat mode = no bundler needed, works in plain HTML) ── -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -13,41 +21,41 @@
   <style>
     /* ── CSS Custom Properties (theme variables) ── */
     :root {
-      --bg:           #f5f4f0;
+      --bg:           #f5f2ed;
       --surface:      #ffffff;
-      --border:       #ddd9d0;
-      --text:         #1a1a1a;
-      --text-muted:   #666;
-      --accent:       #2c5f8a;
-      --accent-light: #e8f0f8;
-      --tag-bg:       #eef2f7;
-      --tag-off:      #f0f0f0;
-      --tag-off-text: #999;
+      --border:       #e2ddd5;
+      --text:         #18181b;
+      --text-muted:   #6b6b74;
+      --accent:       #1a5f6e;
+      --accent-light: #e6f3f5;
+      --tag-bg:       #eef3f4;
+      --tag-off:      #f0efed;
+      --tag-off-text: #9a9a9a;
       --score-high:   #2d7a3a;
-      --score-mid:    #8a6d2c;
-      --score-low:    #999;
+      --score-mid:    #c17d2e;
+      --score-low:    #9a9aa8;
       --shadow:       0 1px 3px rgba(0,0,0,0.08);
       --radius:       6px;
-      --font-serif:   Georgia, 'Times New Roman', serif;
-      --font-sans:    system-ui, -apple-system, sans-serif;
+      --font-serif:   'Lora', Georgia, 'Times New Roman', serif;
+      --font-sans:    'Inter', system-ui, -apple-system, sans-serif;
     }
 
     /* Dark mode variables */
     [data-theme="dark"] {
-      --bg:           #1a1a1e;
-      --surface:      #25252b;
-      --border:       #38383f;
-      --text:         #e8e8e8;
-      --text-muted:   #999;
-      --accent:       #6aabda;
-      --accent-light: #1e2d3d;
-      --tag-bg:       #2a3540;
-      --tag-off:      #2a2a2f;
+      --bg:           #111618;
+      --surface:      #1a2224;
+      --border:       #2a3a3f;
+      --text:         #f0ede8;
+      --text-muted:   #8a8a98;
+      --accent:       #4aa8bc;
+      --accent-light: #0e2428;
+      --tag-bg:       #1a2e32;
+      --tag-off:      #1e2a2d;
       --tag-off-text: #666;
-      --score-high:   #5cb86a;
-      --score-mid:    #c9a84c;
-      --score-low:    #666;
-      --shadow:       0 1px 4px rgba(0,0,0,0.3);
+      --score-high:   #5cb87a;
+      --score-mid:    #d4943a;
+      --score-low:    #6b6b7a;
+      --shadow:       0 1px 4px rgba(0,0,0,0.4);
     }
 
     /* ── Reset & Base ── */
@@ -81,18 +89,28 @@
       flex-wrap: wrap;
     }
 
-    .header-title h1 {
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-mark {
+      flex-shrink: 0;
+      color: var(--accent);
+    }
+    .brand-wordmark h1 {
       font-family: var(--font-serif);
-      font-size: 1.5rem;
-      font-weight: normal;
+      font-size: 1.45rem;
+      font-weight: 600;
       letter-spacing: -0.01em;
       color: var(--text);
+      margin: 0;
     }
-
-    .header-title p {
-      font-size: 0.8rem;
+    .brand-wordmark p {
+      font-size: 0.75rem;
       color: var(--text-muted);
-      margin-top: 2px;
+      margin: 2px 0 0;
+      letter-spacing: 0.01em;
     }
 
     .header-actions {
@@ -126,6 +144,9 @@
       border: 1px solid var(--border);
       padding: 7px 14px;
       font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .btn-icon {
@@ -135,6 +156,9 @@
       padding: 7px 10px;
       font-size: 1rem;
       line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     /* Plain text link button */
@@ -1396,25 +1420,53 @@
   <!-- ── Header ── -->
   <header>
     <div class="header-title">
-      <h1>Research Hub</h1>
-      <p>HRI Paper Feed — Semantic Scholar</p>
+      <!-- Fieldwork signal-mark: circle + asymmetric rays -->
+      <svg class="brand-mark" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="11" cy="16" r="5" fill="currentColor"/>
+        <line x1="17.2" y1="16" x2="23" y2="16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="16.8" y1="12.8" x2="21.5" y2="8.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="16.8" y1="19.2" x2="21.5" y2="23.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        <line x1="17" y1="11.5" x2="20.5" y2="6.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
+        <line x1="17" y1="20.5" x2="20.5" y2="25.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
+      </svg>
+      <div class="brand-wordmark">
+        <h1>Fieldwork</h1>
+        <p>Every researcher, at the frontier</p>
+      </div>
     </div>
     <div class="header-actions">
       <!-- Auth area: shows sign-in button OR avatar + name + sign-out -->
       <div class="auth-area" id="authArea"></div>
       <!-- Refresh button — its inner span spins while loading -->
       <button class="btn-icon" id="refreshBtn" title="Fetch new papers" aria-label="Refresh papers">
-        <span id="refreshIcon">↻</span>
+        <span id="refreshIcon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </span>
       </button>
       <!-- Dark/light mode toggle -->
-      <button class="btn-icon" id="themeBtn" title="Toggle dark/light mode" aria-label="Toggle theme">🌙</button>
+      <button class="btn-icon" id="themeBtn" title="Toggle dark/light mode" aria-label="Toggle theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
       <!-- My Topics: keyword management -->
-      <button class="btn-secondary" id="keywordsToggle">⚙ My Topics</button>
-      <!-- Feed Insights: system-learned personalisation data -->
-      <button class="btn-icon" id="insightsToggle" title="Feed Insights — what the system learned about you" aria-label="Feed Insights">✦</button>
+      <button class="btn-secondary" id="keywordsToggle">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        My Topics
+      </button>
+      <!-- Feed Insights: signal-mark (matches brand logo) -->
+      <button class="btn-icon" id="insightsToggle" title="Feed Insights — what the system learned about you" aria-label="Feed Insights">
+        <svg width="18" height="18" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="11" cy="16" r="5" fill="currentColor"/>
+          <line x1="17.2" y1="16" x2="23" y2="16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          <line x1="16.8" y1="12.8" x2="21.5" y2="8.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          <line x1="16.8" y1="19.2" x2="21.5" y2="23.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          <line x1="17" y1="11.5" x2="20.5" y2="6.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
+          <line x1="17" y1="20.5" x2="20.5" y2="25.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
+        </svg>
+      </button>
       <!-- Reading List: papers liked and queued for reading -->
       <button class="btn-secondary" id="readingListToggle" title="Reading List — papers you've liked">
-        ☰ Reading List <span class="rl-badge" id="readingListBadge" style="display:none"></span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Reading List <span class="rl-badge" id="readingListBadge" style="display:none"></span>
       </button>
     </div>
   </header>
@@ -2156,7 +2208,10 @@ function loadTheme() {
 
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('themeBtn').textContent = theme === 'dark' ? '☀' : '🌙';
+  // Swap theme icon: sun in dark mode, moon in light mode
+  document.getElementById('themeBtn').innerHTML = theme === 'dark'
+    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`
+    : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
   localStorage.setItem(THEME_KEY, theme);
 }
 
@@ -3144,9 +3199,9 @@ function renderStatusFilterGroup() {
   const options = [
     { val: 'all',    label: 'All' },
     { val: 'unread', label: 'Unread' },
-    { val: 'liked',  label: '❤ Liked' },
-    { val: 'saved',  label: '🔖 Saved' },
-    { val: 'hidden', label: '🙈 Hidden' },
+    { val: 'liked',  label: 'Liked' },
+    { val: 'saved',  label: 'Saved' },
+    { val: 'hidden', label: 'Hidden' },
   ];
   el.innerHTML = options.map(o => `
     <label class="filter-option-label">
@@ -3567,15 +3622,21 @@ function updateCardActionDisplay(paperId) {
 
   if (likeBtn) {
     likeBtn.classList.toggle('active', !!a.liked);
-    likeBtn.textContent = a.liked ? '❤ Liked' : '♡ Like';
+    likeBtn.innerHTML = a.liked
+      ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg> Liked`
+      : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Like`;
   }
   if (saveBtn) {
     saveBtn.classList.toggle('active', !!a.saved);
-    saveBtn.textContent = a.saved ? '🔖 Saved' : '🔖 Save';
+    saveBtn.innerHTML = a.saved
+      ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> Saved`
+      : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> Save`;
   }
   if (hideBtn) {
     hideBtn.classList.toggle('active', !!a.hidden);
-    hideBtn.textContent = a.hidden ? '👁 Unhide' : '🙈 Hide';
+    hideBtn.innerHTML = a.hidden
+      ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Unhide`
+      : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg> Hide`;
   }
 }
 
@@ -3774,9 +3835,21 @@ function buildPaperCardHtml(paper) {
   // ── Action buttons — disabled when signed out ─────────────────
   const a           = userActions[paperId] || {};
   const disabledCls = currentUser ? '' : ' disabled-action';
-  const likedLbl    = a.liked  ? '❤ Liked'   : '♡ Like';
-  const savedLbl    = a.saved  ? '🔖 Saved'  : '🔖 Save';
-  const hiddenLbl   = a.hidden ? '👁 Unhide' : '🙈 Hide';
+
+  // SVG icon sets — outline = default, filled = active state
+  const svgHeart = a.liked
+    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg> Liked`
+    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Like`;
+
+  const svgBookmark = a.saved
+    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> Saved`
+    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> Save`;
+
+  const svgEye = a.hidden
+    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Unhide`
+    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg> Hide`;
+
+  const svgCite = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Cite`;
 
   return `
     <article class="paper-card${isUnread ? ' paper-card--unread' : ''}${paper.isWildcard ? ' paper-card--wildcard' : ''}" data-paperid="${esc(paperId)}">
@@ -3808,13 +3881,13 @@ function buildPaperCardHtml(paper) {
       ${kwTagsHtml}
       <div class="paper-actions">
         <button class="action-btn like-btn${a.liked ? ' active' : ''}${disabledCls}"
-                data-paperid="${esc(paperId)}" data-action="like">${likedLbl}</button>
+                data-paperid="${esc(paperId)}" data-action="like">${svgHeart}</button>
         <button class="action-btn save-btn${a.saved ? ' active' : ''}${disabledCls}"
-                data-paperid="${esc(paperId)}" data-action="save">${savedLbl}</button>
+                data-paperid="${esc(paperId)}" data-action="save">${svgBookmark}</button>
         <button class="action-btn hide-btn${a.hidden ? ' active' : ''}${disabledCls}"
-                data-paperid="${esc(paperId)}" data-action="hide">${hiddenLbl}</button>
+                data-paperid="${esc(paperId)}" data-action="hide">${svgEye}</button>
         <button class="action-btn copy-btn"
-                data-paperid="${esc(paperId)}" data-action="copy">📋 Cite</button>
+                data-paperid="${esc(paperId)}" data-action="copy">${svgCite}</button>
       </div>
     </article>
   `;
