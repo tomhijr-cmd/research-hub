@@ -1621,6 +1621,178 @@
     }
     .cite-copy-btn:hover { opacity: 0.85; }
 
+    /* ── AI Search ─────────────────────────────────────────────────────────── */
+
+    /* Mode toggle pill */
+    .mode-toggle-bar { padding: 8px 0 4px; }
+    .mode-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 20px; padding: 2px; }
+    .mode-btn {
+      background: transparent; border: none; border-radius: 18px;
+      padding: 5px 16px; font-size: 13px; color: var(--text-muted);
+      cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .mode-btn.active { background: var(--accent); color: #fff; }
+    .mode-btn:not(.active):hover { color: var(--text); }
+
+    /* AI query entry panel */
+    .ai-query-panel { padding: 12px 0 8px; }
+    .ai-query-label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+    .ai-query-textarea {
+      width: 100%; box-sizing: border-box; min-height: 88px; max-height: 240px;
+      padding: 12px 14px; font-size: 15px; font-family: inherit; line-height: 1.5;
+      border: 1.5px solid var(--border); border-radius: var(--radius);
+      background: var(--surface); color: var(--text); resize: none;
+    }
+    .ai-query-textarea:focus { border-color: var(--accent); outline: none; }
+    .ai-query-footer {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 12px; margin-top: 8px; flex-wrap: wrap;
+    }
+    .ai-submit-btn { flex-shrink: 0; }
+    .ai-submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .ai-context-hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.6; }
+
+    /* Recent searches */
+    .ai-recent-searches { flex: 1; min-width: 0; }
+    .ai-recent-item {
+      display: flex; align-items: center; gap: 6px; font-size: 13px;
+      color: var(--text-muted); padding: 2px 0; cursor: pointer;
+    }
+    .ai-recent-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ai-recent-item:hover .ai-recent-text { color: var(--text); }
+    .ai-recent-remove {
+      background: none; border: none; color: var(--text-muted);
+      cursor: pointer; padding: 0 2px; font-size: 13px; line-height: 1; flex-shrink: 0;
+    }
+    .ai-recent-remove:hover { color: var(--text); }
+
+    /* Pipeline loading state */
+    .ai-loading-panel { padding: 12px 0; }
+    .ai-query-preview {
+      font-size: 13px; color: var(--text-muted); font-style: italic;
+      margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .pipeline-steps {
+      list-style: none; padding: 16px 20px; margin: 0;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); display: flex; flex-direction: column; gap: 12px;
+    }
+    .pipeline-step { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+    .pipeline-step.pending  { color: var(--text-muted); }
+    .pipeline-step.active   { color: var(--accent); }
+    .pipeline-step.done     { color: var(--score-high); }
+    .pipeline-step.failed   { color: #dc2626; }
+    .pipeline-step-icon { width: 16px; flex-shrink: 0; text-align: center; }
+    .ai-cancel-btn { margin-top: 10px; font-size: 13px; color: var(--text-muted); text-decoration: underline; }
+    .ai-cancel-btn:hover { color: var(--text); }
+    @keyframes ai-spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+    .ai-spinner {
+      display: inline-block; width: 12px; height: 12px;
+      border: 2px solid var(--accent); border-top-color: transparent;
+      border-radius: 50%; animation: ai-spin 0.7s linear infinite;
+    }
+
+    /* Summary bar (sticky bar above mixed feed) */
+    .ai-summary-bar {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 12px; overflow: hidden;
+    }
+    .ai-summary-header {
+      display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+      cursor: pointer; font-size: 13px; font-weight: 500; user-select: none;
+    }
+    .ai-summary-title { flex: 1; color: var(--text); }
+    .ai-summary-chevron { color: var(--text-muted); font-size: 11px; }
+    .ai-summary-actions { display: flex; gap: 8px; margin-left: auto; }
+    .ai-summary-actions .btn-text { font-size: 12px; }
+    .ai-summary-body {
+      max-height: 0; overflow: hidden; transition: max-height 250ms ease;
+    }
+    .ai-summary-body.expanded { max-height: 500px; padding: 0 16px 16px; }
+    .ai-summary-interp { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; margin-top: 4px; }
+    .ai-summary-terms { display: flex; flex-wrap: wrap; gap: 6px; }
+    .ai-term-chip {
+      display: inline-block; border: 1px solid var(--accent); color: var(--accent);
+      background: transparent; border-radius: 12px; padding: 2px 10px; font-size: 12px;
+    }
+
+    /* Edit terms panel */
+    .ai-edit-terms-panel { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .ai-edit-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .ai-edit-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      border: 1px solid var(--accent); color: var(--accent);
+      background: transparent; border-radius: 12px; padding: 2px 8px 2px 10px; font-size: 12px;
+    }
+    .ai-edit-chip-remove {
+      background: none; border: none; cursor: pointer;
+      color: var(--accent); font-size: 13px; padding: 0; line-height: 1;
+    }
+    .ai-edit-chip-remove:hover { opacity: 0.7; }
+    .ai-add-term-input {
+      border: 1px dashed var(--border); border-radius: 12px;
+      padding: 2px 10px; font-size: 12px; width: 110px; background: transparent;
+      color: var(--text); outline: none; font-family: inherit;
+    }
+    .ai-add-term-input:focus { border-color: var(--accent); }
+    .ai-edit-actions {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 8px;
+    }
+    .ai-save-kw-btn { font-size: 12px; color: var(--accent); }
+
+    /* AI paper card variant */
+    .paper-card.ai-sourced  { border-left: 3px solid var(--accent); }
+    .paper-card.keyword-sourced { border-left: 3px solid transparent; }
+    .source-badge {
+      display: inline-block; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 4px; margin-right: 6px;
+    }
+    .source-badge.keywords {
+      background: var(--surface); color: var(--text-muted); border: 1px solid var(--border);
+    }
+    .source-badge.ai {
+      background: var(--accent-light); color: var(--accent); border: 1px solid var(--accent-light);
+    }
+    .ai-score { font-size: 13px; font-weight: 600; }
+    .ai-score.high { color: var(--score-high); }
+    .ai-score.mid  { color: var(--text); }
+    .ai-score.low  { color: var(--text-muted); }
+
+    /* "Why this matches" section on AI cards */
+    .why-matches {
+      margin: 8px 0; padding: 8px 10px;
+      border-left: 2px solid var(--accent); background: var(--accent-light);
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+    .why-matches-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 3px;
+    }
+    .why-matches-text { font-size: 13px; line-height: 1.55; color: var(--text); }
+    .kw-overlap-section { margin-top: 6px; }
+    .kw-overlap-label { font-size: 11px; color: var(--text-muted); margin-right: 4px; }
+
+    /* Empty state (no AI results) */
+    .ai-empty-state { text-align: center; padding: 48px 24px; }
+    .ai-empty-state h3 { font-size: 16px; color: var(--text); margin: 0 0 8px; }
+    .ai-suggestion-list {
+      text-align: left; list-style: none; padding: 0; margin: 12px 0;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .ai-suggestion-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; font-size: 14px;
+    }
+    .btn-ghost {
+      flex-shrink: 0; font-size: 12px; padding: 3px 12px;
+      border: 1px solid var(--accent); color: var(--accent);
+      border-radius: 12px; background: transparent; cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-ghost:hover { background: var(--accent-light); }
+
     /* Sign-in popover — appears above the clicked action button when signed out */
     .signin-popover {
       position: absolute;
@@ -1873,6 +2045,67 @@
     </div>
   </div>
 
+  <!-- ── AI Search: mode toggle ── -->
+  <div class="mode-toggle-bar" id="modeToggleBar">
+    <div class="mode-toggle" role="radiogroup" aria-label="Search method">
+      <button class="mode-btn active" id="modeBtnKeywords" data-mode="keywords"
+              role="radio" aria-checked="true">Keyword Filter</button>
+      <button class="mode-btn" id="modeBtnAi" data-mode="ai"
+              role="radio" aria-checked="false">AI Discovery</button>
+    </div>
+  </div>
+
+  <!-- ── AI Search: query entry panel (shown in AI mode before search) ── -->
+  <div class="ai-query-panel" id="aiQueryPanel" style="display:none">
+    <label class="ai-query-label" for="aiQueryInput">Ask a research question</label>
+    <div class="ai-query-input-row">
+      <textarea id="aiQueryInput" class="ai-query-textarea" rows="3"
+        placeholder='e.g. "How do stationary robots in airports affect passenger stress and wayfinding behavior?"'
+        maxlength="1000" spellcheck="true"></textarea>
+    </div>
+    <div class="ai-query-footer">
+      <div class="ai-recent-searches" id="aiRecentSearches"></div>
+      <button class="btn-primary ai-submit-btn" id="aiSearchBtn" disabled>Search with AI →</button>
+    </div>
+    <div class="ai-context-hint" id="aiContextHint"></div>
+  </div>
+
+  <!-- ── AI Search: loading / pipeline steps (shown while Claude is working) ── -->
+  <div class="ai-loading-panel" id="aiLoadingPanel" style="display:none">
+    <div class="ai-query-preview" id="aiQueryPreview"></div>
+    <ol class="pipeline-steps" id="pipelineSteps">
+      <li class="pipeline-step pending" id="step1">Understanding your research question</li>
+      <li class="pipeline-step pending" id="step2">Expanding to search terms</li>
+      <li class="pipeline-step pending" id="step3">Fetching papers from Semantic Scholar</li>
+      <li class="pipeline-step pending" id="step4">Ranking and explaining matches</li>
+    </ol>
+    <button class="btn-text ai-cancel-btn" id="aiCancelBtn">Cancel</button>
+  </div>
+
+  <!-- ── AI Search: summary bar (shown above mixed feed after results load) ── -->
+  <div class="ai-summary-bar" id="aiSummaryBar" style="display:none">
+    <div class="ai-summary-header" id="aiSummaryHeader">
+      <span class="ai-summary-icon">🤖</span>
+      <span class="ai-summary-title">Claude interpreted your query</span>
+      <span class="ai-summary-chevron" id="aiSummaryChevron">▾</span>
+      <div class="ai-summary-actions">
+        <button class="btn-text" id="aiEditTermsBtn">Edit terms</button>
+        <button class="btn-text" id="aiClearBtn">Clear</button>
+      </div>
+    </div>
+    <div class="ai-summary-body" id="aiSummaryBody">
+      <div class="ai-summary-interp" id="aiSummaryInterp"></div>
+      <div class="ai-summary-terms" id="aiSummaryTerms"></div>
+      <div class="ai-edit-terms-panel" id="aiEditTermsPanel" style="display:none">
+        <div class="ai-edit-chips" id="aiEditChips"></div>
+        <div class="ai-edit-actions">
+          <button class="btn-text ai-save-kw-btn" id="aiSaveKwBtn">+ Save these as my keywords</button>
+          <button class="btn-primary" id="aiRerunBtn">Re-search with these terms →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Filter panel ── -->
   <div id="filterPanel" class="filter-panel">
     <div class="filter-panel-header">
@@ -2017,6 +2250,10 @@ const READING_LIST_KEY     = 'researchhub_reading_list'; // { paper, likedAt }[]
 const KEYWORDS_LOCAL_KEY   = 'researchhub_keywords_local'; // localStorage fallback when signed out
 const SCORE_TIP_SEEN_KEY   = 'researchhub_score_tip_seen';
 const WILDCARD_TIP_SEEN_KEY= 'researchhub_wildcard_tip_seen';
+const AI_RECENT_KEY   = 'researchhub_ai_recent'; // string[] max 10 recent AI queries
+const AI_CLAUDE_BASE  = '/api/claude';
+const AI_MIN_SCORE    = 3;   // papers ranked below this by Claude are filtered out
+const AI_MAX_RECENT   = 10;
 const FETCH_TTL_MS    = 24 * 60 * 60 * 1000;
 const PAGE_SIZE       = 20;
 
@@ -2062,6 +2299,15 @@ let loading     = false;
 
 let searchQuery = '';       // current live search string
 let searchTimer = null;     // debounce handle
+
+// ── AI Search state ─────────────────────────────────────────
+let aiMode      = false;       // true = AI Discovery mode active
+let aiPapers    = [];          // AI-ranked papers { ...paper, aiScore, aiExplanation, source:'ai' }
+let aiQuery     = '';          // last submitted natural-language query
+let aiSummary   = null;        // { interpretation, searchTerms[], suggestions[] } from Claude
+let aiLoading   = false;       // prevents double-submit
+let aiAbortCtrl = null;        // AbortController for in-flight fetch
+let aiEditTerms = [];          // editable copy of search terms shown in summary bar
 
 let filterState = {
   scores:        [1, 2, 3, 4, 5],  // active score checkboxes
@@ -3055,6 +3301,10 @@ function bindEvents() {
   document.getElementById('searchInput').addEventListener('input', handleSearchInput);
   document.getElementById('searchClearBtn').addEventListener('click', clearSearch);
 
+  // AI Search mode toggle + query panel
+  initModeToggle();
+  initAiQueryPanel();
+
   // Filter panel toggle
   document.getElementById('filterToggleBtn').addEventListener('click', () => {
     const body = document.getElementById('filterPanelBody');
@@ -3534,6 +3784,537 @@ function clearSearch() {
   if (input) input.value = '';
   document.getElementById('searchClearBtn').style.display = 'none';
   applyAndRender();
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  AI SEARCH — MODE TOGGLE
+// ════════════════════════════════════════════════════════════
+
+function initModeToggle() {
+  document.getElementById('modeBtnKeywords').addEventListener('click', () => switchMode('keywords'));
+  document.getElementById('modeBtnAi').addEventListener('click', () => switchMode('ai'));
+}
+
+function switchMode(mode) {
+  aiMode = (mode === 'ai');
+
+  // Update toggle button states
+  document.getElementById('modeBtnKeywords').classList.toggle('active', !aiMode);
+  document.getElementById('modeBtnAi').classList.toggle('active', aiMode);
+  document.getElementById('modeBtnKeywords').setAttribute('aria-checked', String(!aiMode));
+  document.getElementById('modeBtnAi').setAttribute('aria-checked', String(aiMode));
+
+  // Show / hide panels
+  const searchBar  = document.getElementById('searchBarContainer');
+  const filterPanel= document.getElementById('filterPanel');
+  const queryPanel = document.getElementById('aiQueryPanel');
+  const summaryBar = document.getElementById('aiSummaryBar');
+
+  if (!aiMode) {
+    // Returning to keyword mode
+    if (searchBar)   searchBar.style.display   = '';
+    if (filterPanel) filterPanel.style.display  = '';
+    if (queryPanel)  queryPanel.style.display   = 'none';
+    if (summaryBar)  summaryBar.style.display   = 'none';
+    document.getElementById('aiLoadingPanel').style.display = 'none';
+    // Restore keyword feed
+    applyAndRender();
+  } else {
+    // Entering AI Discovery mode
+    if (searchBar)   searchBar.style.display   = 'none';
+    if (filterPanel) filterPanel.style.display  = 'none';
+    if (queryPanel)  queryPanel.style.display   = aiPapers.length ? 'none' : '';
+    if (summaryBar)  summaryBar.style.display   = aiPapers.length ? ''     : 'none';
+    if (aiPapers.length) {
+      // AI results still in memory — re-show them
+      renderMixedFeed();
+    }
+    renderRecentSearches();
+    renderKeywordContextHint();
+  }
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  AI SEARCH — QUERY PANEL
+// ════════════════════════════════════════════════════════════
+
+function initAiQueryPanel() {
+  const textarea  = document.getElementById('aiQueryInput');
+  const submitBtn = document.getElementById('aiSearchBtn');
+
+  // Enable submit only when textarea has content; auto-grow height
+  textarea.addEventListener('input', () => {
+    submitBtn.disabled = textarea.value.trim().length === 0;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 240) + 'px';
+  });
+
+  // Button click
+  submitBtn.addEventListener('click', () => {
+    const q = textarea.value.trim();
+    if (q) runAiSearch(q);
+  });
+
+  // Enter submits (Shift+Enter inserts newline)
+  textarea.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!submitBtn.disabled) runAiSearch(textarea.value.trim());
+    }
+  });
+
+  document.getElementById('aiCancelBtn').addEventListener('click', cancelAiSearch);
+  document.getElementById('aiClearBtn').addEventListener('click', clearAiResults);
+  document.getElementById('aiSummaryHeader').addEventListener('click', toggleSummaryBar);
+  document.getElementById('aiEditTermsBtn').addEventListener('click', e => {
+    e.stopPropagation(); // don't trigger header collapse
+    toggleEditTerms();
+  });
+  document.getElementById('aiSaveKwBtn').addEventListener('click', saveAiTermsAsKeywords);
+  document.getElementById('aiRerunBtn').addEventListener('click', rerunWithEditedTerms);
+}
+
+function renderRecentSearches() {
+  const recent    = JSON.parse(localStorage.getItem(AI_RECENT_KEY) || '[]');
+  const container = document.getElementById('aiRecentSearches');
+  if (!container) return;
+  if (!recent.length) { container.innerHTML = ''; return; }
+
+  container.innerHTML = recent.map((q, i) => `
+    <div class="ai-recent-item" data-idx="${i}">
+      <span class="ai-recent-icon">🕐</span>
+      <span class="ai-recent-text" title="${esc(q)}">${esc(q.length > 60 ? q.slice(0, 57) + '…' : q)}</span>
+      <button class="ai-recent-remove" data-idx="${i}" aria-label="Remove">×</button>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.ai-recent-item').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target.classList.contains('ai-recent-remove')) {
+        removeRecentSearch(+e.target.dataset.idx);
+      } else {
+        const input = document.getElementById('aiQueryInput');
+        input.value = recent[+el.dataset.idx];
+        document.getElementById('aiSearchBtn').disabled = false;
+        input.focus();
+      }
+    });
+  });
+}
+
+function saveRecentSearch(query) {
+  let recent = JSON.parse(localStorage.getItem(AI_RECENT_KEY) || '[]');
+  recent = [query, ...recent.filter(q => q !== query)].slice(0, AI_MAX_RECENT);
+  localStorage.setItem(AI_RECENT_KEY, JSON.stringify(recent));
+}
+
+function removeRecentSearch(idx) {
+  let recent = JSON.parse(localStorage.getItem(AI_RECENT_KEY) || '[]');
+  recent.splice(idx, 1);
+  localStorage.setItem(AI_RECENT_KEY, JSON.stringify(recent));
+  renderRecentSearches();
+}
+
+function renderKeywordContextHint() {
+  const hint = document.getElementById('aiContextHint');
+  if (!hint) return;
+  const kws  = activeKeywords();
+  if (!kws.length) { hint.innerHTML = ''; return; }
+  const shown = kws.slice(0, 6);
+  const more  = kws.length - shown.length;
+  hint.innerHTML = 'Your keywords (sent as context): ' +
+    shown.map(k => `<span class="matched-kw-tag">${esc(k)}</span>`).join(' ') +
+    (more > 0 ? ` <span style="color:var(--text-muted)">+ ${more} more</span>` : '');
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  AI SEARCH — MAIN PIPELINE
+// ════════════════════════════════════════════════════════════
+
+async function runAiSearch(query) {
+  if (aiLoading || !query) return;
+  aiLoading = true;
+  aiQuery   = query;
+  saveRecentSearch(query);
+
+  // Transition to loading view
+  document.getElementById('aiQueryPanel').style.display    = 'none';
+  document.getElementById('aiLoadingPanel').style.display  = '';
+  document.getElementById('aiSummaryBar').style.display    = 'none';
+  document.getElementById('aiQueryPreview').textContent    =
+    `"${query.slice(0, 80)}${query.length > 80 ? '…' : ''}"`;
+
+  setPipelineStep(1, 'active');
+  setPipelineStep(2, 'pending');
+  setPipelineStep(3, 'pending');
+  setPipelineStep(4, 'pending');
+
+  aiAbortCtrl = new AbortController();
+  const { signal } = aiAbortCtrl;
+
+  try {
+    // ── Step 1 + 2: Claude query expansion ──────────────────
+    const expandRes = await fetch(AI_CLAUDE_BASE, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ type: 'expand', query, keywords: activeKeywords() }),
+      signal,
+    });
+    if (!expandRes.ok) {
+      const err = await expandRes.json().catch(() => ({}));
+      throw new Error(err.error || `Claude API error (${expandRes.status})`);
+    }
+    const expandData = await expandRes.json();
+    // expandData = { searchTerms[], interpretation, suggestions[] }
+    aiSummary   = expandData;
+    aiEditTerms = [...(expandData.searchTerms || [])];
+
+    setPipelineStep(1, 'done');
+    setPipelineStep(2, 'done');
+    setPipelineStep(3, 'active');
+
+    // ── Step 3: Parallel Semantic Scholar searches ───────────
+    const terms      = (expandData.searchTerms || []).slice(0, 4);
+    const seen       = new Set();
+    const candidates = [];
+
+    await Promise.all(terms.map(async term => {
+      try {
+        const batch = await fetchOneKeyword(term); // reuse existing function
+        for (const p of batch) {
+          if (p.paperId && !seen.has(p.paperId) && p.title) {
+            seen.add(p.paperId);
+            candidates.push(p);
+          }
+        }
+      } catch (e) {
+        console.warn('[AI Search] S2 fetch failed for term:', term, e.message);
+      }
+    }));
+
+    setPipelineStep(3, 'done');
+
+    if (candidates.length === 0) {
+      showAiEmptyState(expandData.suggestions || []);
+      return;
+    }
+
+    // ── Step 4: Claude re-ranking + explanations ─────────────
+    setPipelineStep(4, 'active');
+
+    const top20 = candidates.slice(0, 20).map(p => ({
+      paperId:  p.paperId,
+      title:    p.title,
+      abstract: (p.abstract || '').slice(0, 400),
+      authors:  (p.authors || []).map(a => a.name).join(', '),
+      year:     p.year,
+    }));
+
+    const rankRes = await fetch(AI_CLAUDE_BASE, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ type: 'rank', query, papers: top20 }),
+      signal,
+    });
+    if (!rankRes.ok) {
+      const err = await rankRes.json().catch(() => ({}));
+      throw new Error(err.error || `Claude ranking error (${rankRes.status})`);
+    }
+    const rankData = await rankRes.json();
+    // rankData = [{ paperId, score, explanation }]
+
+    setPipelineStep(4, 'done');
+
+    // Build a score/explanation lookup
+    const rankMap = Object.fromEntries(rankData.map(r => [r.paperId, r]));
+
+    // Merge: filter by min score, attach AI metadata, sort by score desc
+    aiPapers = candidates
+      .filter(p => rankMap[p.paperId] && rankMap[p.paperId].score >= AI_MIN_SCORE)
+      .map(p => ({
+        ...p,
+        aiScore:       rankMap[p.paperId].score,
+        aiExplanation: rankMap[p.paperId].explanation || '',
+        source:        'ai',
+        score:         Math.max(1, Math.round(rankMap[p.paperId].score / 2)), // map 1-10 → 1-5
+      }))
+      .sort((a, b) => b.aiScore - a.aiScore);
+
+    if (aiPapers.length === 0) {
+      showAiEmptyState(expandData.suggestions || []);
+      return;
+    }
+
+    showSummaryBar();
+
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      // User cancelled — return to query panel with text preserved
+      document.getElementById('aiQueryPanel').style.display = '';
+    } else {
+      console.error('[AI Search] Error:', err);
+      setStatus('AI search failed: ' + err.message, true);
+      document.getElementById('aiQueryPanel').style.display = '';
+    }
+  } finally {
+    aiLoading = false;
+    document.getElementById('aiLoadingPanel').style.display = 'none';
+  }
+}
+
+function cancelAiSearch() {
+  if (aiAbortCtrl) aiAbortCtrl.abort();
+  aiLoading = false;
+  document.getElementById('aiLoadingPanel').style.display = 'none';
+  document.getElementById('aiQueryPanel').style.display   = '';
+}
+
+function clearAiResults() {
+  aiPapers    = [];
+  aiQuery     = '';
+  aiSummary   = null;
+  aiEditTerms = [];
+  switchMode('keywords');
+}
+
+function setPipelineStep(stepNum, state) {
+  const el = document.getElementById(`step${stepNum}`);
+  if (!el) return;
+  // Build the icon based on state
+  let icon;
+  if (state === 'active')  icon = '<span class="ai-spinner"></span>';
+  else if (state === 'done')   icon = '✓';
+  else if (state === 'failed') icon = '✗';
+  else                         icon = '○';
+
+  el.className = `pipeline-step ${state}`;
+  // Replace or create icon span
+  let iconEl = el.querySelector('.pipeline-step-icon');
+  if (!iconEl) {
+    iconEl = document.createElement('span');
+    iconEl.className = 'pipeline-step-icon';
+    el.prepend(iconEl);
+  }
+  iconEl.innerHTML = icon;
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  AI SEARCH — MIXED FEED RENDERING
+// ════════════════════════════════════════════════════════════
+
+function renderMixedFeed() {
+  // AI papers at top (sorted by aiScore), keyword papers below in their normal order
+  const keywordPapers = applyFiltersAndSort(allPapers).map(p => ({ ...p, source: 'keywords' }));
+  const combined      = [...aiPapers, ...keywordPapers];
+
+  const feed = document.getElementById('paperFeed');
+  if (combined.length === 0) {
+    feed.innerHTML = '<p style="color:var(--text-muted);padding:32px 0;text-align:center;">No papers to show.</p>';
+    return;
+  }
+  feed.innerHTML = combined.map(p => buildPaperCardHtml(p)).join('');
+  bindCardActions();
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  AI SEARCH — SUMMARY BAR
+// ════════════════════════════════════════════════════════════
+
+function showSummaryBar() {
+  // Populate interpretation
+  const interpEl = document.getElementById('aiSummaryInterp');
+  if (interpEl) {
+    interpEl.textContent = aiSummary?.interpretation
+      ? `Interpreted as: ${aiSummary.interpretation}`
+      : '';
+  }
+
+  // Populate term chips (read-only view)
+  const termsEl = document.getElementById('aiSummaryTerms');
+  if (termsEl) {
+    termsEl.innerHTML = (aiSummary?.searchTerms || [])
+      .map(t => `<span class="ai-term-chip">${esc(t)}</span>`).join('');
+  }
+
+  // Reset edit panel to hidden
+  const editPanel = document.getElementById('aiEditTermsPanel');
+  if (editPanel) editPanel.style.display = 'none';
+
+  // Show the bar
+  const bar = document.getElementById('aiSummaryBar');
+  if (bar) bar.style.display = '';
+
+  // Hide loading, hide query panel
+  document.getElementById('aiLoadingPanel').style.display = 'none';
+  document.getElementById('aiQueryPanel').style.display   = 'none';
+
+  // Render the mixed feed
+  renderMixedFeed();
+}
+
+function toggleSummaryBar(e) {
+  // Don't collapse when clicking the action buttons
+  if (e.target.closest('.ai-summary-actions')) return;
+  const body    = document.getElementById('aiSummaryBody');
+  const chevron = document.getElementById('aiSummaryChevron');
+  const expanded = body.classList.contains('expanded');
+  body.classList.toggle('expanded', !expanded);
+  chevron.textContent = expanded ? '▾' : '▴';
+}
+
+function toggleEditTerms() {
+  const panel   = document.getElementById('aiEditTermsPanel');
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? '' : 'none';
+  if (isHidden) {
+    // Also expand the summary body so edit panel is visible
+    document.getElementById('aiSummaryBody').classList.add('expanded');
+    document.getElementById('aiSummaryChevron').textContent = '▴';
+    renderEditChips();
+  }
+}
+
+function renderEditChips() {
+  const container = document.getElementById('aiEditChips');
+  if (!container) return;
+
+  container.innerHTML = aiEditTerms.map((t, i) => `
+    <span class="ai-edit-chip">
+      ${esc(t)}
+      <button class="ai-edit-chip-remove" data-idx="${i}" aria-label="Remove ${esc(t)}">×</button>
+    </span>
+  `).join('') +
+  `<input class="ai-add-term-input" id="aiAddTermInput"
+          placeholder="+ Add term" maxlength="60" aria-label="Add search term">`;
+
+  container.querySelectorAll('.ai-edit-chip-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      aiEditTerms.splice(+btn.dataset.idx, 1);
+      renderEditChips();
+    });
+  });
+
+  const addInput = document.getElementById('aiAddTermInput');
+  if (addInput) {
+    addInput.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ',') && addInput.value.trim()) {
+        e.preventDefault();
+        aiEditTerms.push(addInput.value.trim());
+        renderEditChips();
+      }
+    });
+  }
+}
+
+async function rerunWithEditedTerms() {
+  // PM decision: re-run goes direct to S2, no Claude re-ranking
+  if (!aiEditTerms.length) return;
+  setStatus('Fetching papers with updated terms…');
+
+  const seen       = new Set();
+  const candidates = [];
+
+  await Promise.all(aiEditTerms.slice(0, 4).map(async term => {
+    try {
+      const batch = await fetchOneKeyword(term);
+      for (const p of batch) {
+        if (p.paperId && !seen.has(p.paperId) && p.title) {
+          seen.add(p.paperId);
+          candidates.push(p);
+        }
+      }
+    } catch (e) { /* skip failed terms silently */ }
+  }));
+
+  // Show results without AI score/explanation (raw S2 results)
+  aiPapers = candidates.map(p => ({
+    ...p,
+    source:        'ai',
+    aiScore:       5,   // neutral mid score
+    aiExplanation: '',  // no explanation for direct S2 results
+    score:         scoreWithSignals(p),
+  }));
+
+  // Update displayed terms in summary bar
+  if (aiSummary) aiSummary.searchTerms = [...aiEditTerms];
+  const termsEl = document.getElementById('aiSummaryTerms');
+  if (termsEl) {
+    termsEl.innerHTML = aiEditTerms
+      .map(t => `<span class="ai-term-chip">${esc(t)}</span>`).join('');
+  }
+
+  // Close edit panel
+  const editPanel = document.getElementById('aiEditTermsPanel');
+  if (editPanel) editPanel.style.display = 'none';
+
+  setStatus('');
+  renderMixedFeed();
+}
+
+function saveAiTermsAsKeywords() {
+  const existing = new Set(keywords.map(k => k.text.toLowerCase()));
+  const toAdd    = aiEditTerms.filter(t => !existing.has(t.toLowerCase()));
+  if (!toAdd.length) {
+    showToast('All terms are already in your keywords');
+    return;
+  }
+  toAdd.forEach(t => keywords.push({ text: t, active: true }));
+  saveKeywords();
+  renderKeywordList();
+  showToast(`${toAdd.length} term${toAdd.length > 1 ? 's' : ''} added to your keywords`);
+}
+
+
+// ════════════════════════════════════════════════════════════
+//  AI SEARCH — EMPTY STATE
+// ════════════════════════════════════════════════════════════
+
+function showAiEmptyState(suggestions) {
+  document.getElementById('aiLoadingPanel').style.display = 'none';
+  document.getElementById('aiQueryPanel').style.display   = '';
+
+  const searchedTerms = (aiSummary?.searchTerms || [])
+    .map(t => `<span class="ai-term-chip">${esc(t)}</span>`).join(' ');
+
+  const suggestionsHtml = suggestions.length ? `
+    <div style="margin-top:16px;text-align:left;">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Try a broader question:</p>
+      <ul class="ai-suggestion-list">
+        ${suggestions.map(s => `
+          <li class="ai-suggestion-row">
+            <span style="font-size:14px;">${esc(s)}</span>
+            <button class="btn-ghost ai-suggestion-btn" data-query="${esc(s)}">Search</button>
+          </li>`).join('')}
+      </ul>
+    </div>` : '';
+
+  const feed = document.getElementById('paperFeed');
+  feed.innerHTML = `
+    <div class="ai-empty-state">
+      <h3>No relevant papers found for this query.</h3>
+      <p style="color:var(--text-muted);font-size:14px;margin-top:6px;">
+        Claude searched for: ${searchedTerms}
+      </p>
+      ${suggestionsHtml}
+      <p style="margin-top:20px;font-size:13px;color:var(--text-muted);">
+        Or <button class="btn-text" onclick="switchMode('keywords')">return to keyword feed</button>
+      </p>
+    </div>`;
+
+  // Wire suggestion buttons — click populates textarea and auto-submits
+  feed.querySelectorAll('.ai-suggestion-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const q = btn.dataset.query;
+      const textarea = document.getElementById('aiQueryInput');
+      if (textarea) textarea.value = q;
+      runAiSearch(q);
+    });
+  });
 }
 
 
@@ -4437,7 +5218,7 @@ function buildPaperCardHtml(paper) {
   const svgCite = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Cite`;
 
   return `
-    <article class="paper-card${isUnread ? ' paper-card--unread' : ''}${paper.isWildcard ? ' paper-card--wildcard' : ''}" data-paperid="${esc(paperId)}">
+    <article class="paper-card${isUnread ? ' paper-card--unread' : ''}${paper.isWildcard ? ' paper-card--wildcard' : ''}${paper.source === 'ai' ? ' ai-sourced' : ' keyword-sourced'}" data-paperid="${esc(paperId)}">
       <div class="paper-card-top">
         <h2 class="paper-title">
           <a href="${esc(paperUrl)}" target="_blank" rel="noopener">
@@ -4446,9 +5227,16 @@ function buildPaperCardHtml(paper) {
         </h2>
         <div class="paper-card-badges">
           ${wildcardBadge}
-          <span class="score-badge ${scoreClass}" title="Relevance score: ${paper.score}/5 (matches your keywords — not a star rating)&#10;${esc(scoreExplanation)}">
-            ★ ${paper.score}/5
-          </span>
+          ${paper.source === 'ai'
+            ? `<span class="source-badge ai">AI Match</span>
+               <span class="ai-score ${paper.aiScore >= 7 ? 'high' : paper.aiScore >= 4 ? 'mid' : 'low'}"
+                     title="AI relevance score: ${paper.aiScore}/10 for your search question">
+                 ◈ ${paper.aiScore}/10
+               </span>`
+            : `<span class="score-badge ${scoreClass}" title="Relevance score: ${paper.score}/5 (matches your keywords — not a star rating)&#10;${esc(scoreExplanation)}">
+                 ★ ${paper.score}/5
+               </span>`
+          }
         </div>
       </div>
       <div class="paper-meta">
@@ -4464,7 +5252,20 @@ function buildPaperCardHtml(paper) {
         ? `<button class="expand-btn" data-paperid="${esc(paperId)}">Show more</button>`
         : ''}
       ${metricsHtml}
-      ${kwTagsHtml}
+      ${paper.source === 'ai' && paper.aiExplanation
+        ? `<div class="why-matches">
+             <div class="why-matches-label">Why this matches</div>
+             <div class="why-matches-text">${esc(paper.aiExplanation)}</div>
+           </div>`
+        : ''}
+      ${paper.source === 'ai'
+        ? (matched.length
+            ? `<div class="kw-overlap-section">
+                 <span class="kw-overlap-label">Also matches your keywords:</span>
+                 ${matched.slice(0, 3).map(k => `<span class="matched-kw-tag">${esc(k)}</span>`).join('')}
+               </div>`
+            : '')
+        : kwTagsHtml}
       ${fieldTagsHtml}
       <div class="paper-actions">
         <button class="action-btn like-btn${a.liked ? ' active' : ''}${disabledCls}"
