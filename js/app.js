@@ -64,7 +64,6 @@ let searchQuery = '';       // current live search string
 let searchTimer = null;     // debounce handle
 
 // ── AI Search state ─────────────────────────────────────────
-let aiMode      = false;       // true = AI Discovery mode active
 let aiPapers    = [];          // AI-ranked papers { ...paper, aiScore, aiExplanation, source:'ai' }
 let aiQuery     = '';          // last submitted natural-language query
 let aiSummary   = null;        // { interpretation, searchTerms[], suggestions[] } from Claude
@@ -655,9 +654,27 @@ function bindEvents() {
   document.getElementById('searchInput').addEventListener('input', handleSearchInput);
   document.getElementById('searchClearBtn').addEventListener('click', clearSearch);
 
-  // AI Search mode toggle + query panel
-  initModeToggle();
-  initAiQueryPanel();
+  // AI inline button: click → run AI search with current input value
+  document.getElementById('aiSearchBtn').addEventListener('click', () => {
+    const q = document.getElementById('searchInput').value.trim();
+    if (q) runAiSearch(q);
+  });
+
+  // Enter key in unified search input: if it looks like a question, run AI search
+  document.getElementById('searchInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const q = e.target.value.trim();
+      if (!q) return;
+      if (looksLikeQuestion(q)) {
+        e.preventDefault();
+        runAiSearch(q);
+      }
+      // Otherwise let normal behaviour apply (form submit / nothing)
+    }
+  });
+
+  // Wire remaining AI search panel controls
+  initAiSearchBtn();
 
   // Filter panel toggle
   document.getElementById('filterToggleBtn').addEventListener('click', () => {
@@ -1124,6 +1141,23 @@ function renderActiveKeywordsBar() {
   bar.innerHTML =
     '<span class="bar-label">Searching:</span>' +
     active.map(k => `<span class="active-kw-tag">${esc(k)}</span>`).join('');
+}
+
+
+// ── Intent detection ──────────────────────────────────────────
+
+// Returns true when the input looks like a natural-language question
+// rather than a short keyword phrase.
+// Used to decide whether to highlight the "Search with AI →" button.
+function looksLikeQuestion(text) {
+  const t = text.trim();
+  if (t.length < 15) return false;                  // too short to be a question
+  if (t.includes('?')) return true;                 // explicit question mark
+  const words = t.split(/\s+/);
+  if (words.length >= 5) return true;               // 5+ words → probably a question
+  const starters = ['how','why','what','when','where','which','does','do',
+                    'can','is','are','will','would','should'];
+  return starters.includes(words[0].toLowerCase()); // starts with question word
 }
 
 

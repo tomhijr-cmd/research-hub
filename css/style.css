@@ -652,12 +652,13 @@
       font-size: 0.75rem;
     }
 
-    /* ── Search bar ── */
-    .search-bar-container {
-      margin-bottom: 12px;
+    /* ── Unified search bar ── */
+    .unified-search-bar {
+      margin-bottom: 10px;
+      position: relative;
     }
 
-    .search-input-wrapper {
+    .unified-search-wrapper {
       position: relative;
       display: flex;
       align-items: center;
@@ -669,26 +670,28 @@
       font-size: 0.9rem;
       pointer-events: none;
       color: var(--text-muted);
+      z-index: 1;
     }
 
-    .search-input {
+    .unified-search-input {
       width: 100%;
       font-family: var(--font-sans);
-      font-size: 0.9rem;
-      padding: 9px 36px 9px 36px;
-      border: 1px solid var(--border);
+      font-size: 0.95rem;
+      padding: 10px 150px 10px 38px;
+      border: 1.5px solid var(--border);
       border-radius: var(--radius);
       background: var(--surface);
       color: var(--text);
       outline: none;
       transition: border-color 0.15s;
+      box-sizing: border-box;
     }
 
-    .search-input:focus { border-color: var(--accent); }
+    .unified-search-input:focus { border-color: var(--accent); }
 
     .search-clear-btn {
       position: absolute;
-      right: 8px;
+      right: 140px;
       background: none;
       border: none;
       color: var(--text-muted);
@@ -699,6 +702,29 @@
     }
 
     .search-clear-btn:hover { color: var(--text); opacity: 1; }
+
+    /* AI button embedded in the right side of the search input */
+    .ai-inline-btn {
+      position: absolute;
+      right: 6px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: calc(var(--radius) - 2px);
+      padding: 5px 12px;
+      font-size: 12px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+    }
+    .ai-inline-btn.muted {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .ai-inline-btn:hover { opacity: 0.85; }
 
     /* Search highlight inside paper cards */
     mark.search-highlight {
@@ -1602,37 +1628,16 @@
 
     /* ── AI Search ─────────────────────────────────────────────────────────── */
 
-    /* Mode toggle pill */
-    .mode-toggle-bar { padding: 8px 0 4px; }
-    .mode-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 20px; padding: 2px; }
-    .mode-btn {
-      background: transparent; border: none; border-radius: 18px;
-      padding: 5px 16px; font-size: 13px; color: var(--text-muted);
-      cursor: pointer; font-family: inherit; transition: all 0.15s;
-    }
-    .mode-btn.active { background: var(--accent); color: #fff; }
-    .mode-btn:not(.active):hover { color: var(--text); }
+    /* Context hint below unified input */
+    .ai-context-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.6; }
 
-    /* AI query entry panel */
-    .ai-query-panel { padding: 12px 0 8px; }
-    .ai-query-label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
-    .ai-query-textarea {
-      width: 100%; box-sizing: border-box; min-height: 88px; max-height: 240px;
-      padding: 12px 14px; font-size: 15px; font-family: inherit; line-height: 1.5;
-      border: 1.5px solid var(--border); border-radius: var(--radius);
-      background: var(--surface); color: var(--text); resize: none;
+    /* Recent searches dropdown (below unified input) */
+    .ai-recent-searches {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      z-index: 100; overflow: hidden;
     }
-    .ai-query-textarea:focus { border-color: var(--accent); outline: none; }
-    .ai-query-footer {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      gap: 12px; margin-top: 8px; flex-wrap: wrap;
-    }
-    .ai-submit-btn { flex-shrink: 0; }
-    .ai-submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-    .ai-context-hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.6; }
-
-    /* Recent searches */
-    .ai-recent-searches { flex: 1; min-width: 0; }
     .ai-recent-item {
       display: flex; align-items: center; gap: 6px; font-size: 13px;
       color: var(--text-muted); padding: 2px 0; cursor: pointer;

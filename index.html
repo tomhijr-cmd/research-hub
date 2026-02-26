@@ -137,43 +137,25 @@
   <!-- ── Reading List view (swaps in place of the feed) ── -->
   <div id="readingListView" style="display:none" aria-label="Reading List"></div>
 
-  <!-- ── Active keyword tags shown in feed view ── -->
-  <div class="active-keywords-bar" id="activeKeywordsBar"></div>
-
-  <!-- ── Search bar ── -->
-  <div class="search-bar-container" id="searchBarContainer">
-    <div class="search-input-wrapper">
+  <!-- ── Unified search: keyword filter + AI deep search ── -->
+  <div class="unified-search-bar" id="unifiedSearchBar">
+    <div class="unified-search-wrapper">
       <span class="search-icon">🔍</span>
-      <input id="searchInput" class="search-input" type="search"
-             placeholder="Search titles, abstracts, authors…" maxlength="200" />
-      <button id="searchClearBtn" class="search-clear-btn" style="display:none" aria-label="Clear search">✕</button>
+      <input id="searchInput" class="unified-search-input" type="search"
+             placeholder="Search or ask a research question…"
+             maxlength="1000" spellcheck="true" autocomplete="off" />
+      <button id="searchClearBtn" class="search-clear-btn" style="display:none" aria-label="Clear">✕</button>
+      <button id="aiSearchBtn" class="ai-inline-btn" style="display:none"
+              aria-label="Search with AI">Search with AI →</button>
     </div>
-  </div>
-
-  <!-- ── AI Search: mode toggle ── -->
-  <div class="mode-toggle-bar" id="modeToggleBar">
-    <div class="mode-toggle" role="radiogroup" aria-label="Search method">
-      <button class="mode-btn active" id="modeBtnKeywords" data-mode="keywords"
-              role="radio" aria-checked="true">Keyword Filter</button>
-      <button class="mode-btn" id="modeBtnAi" data-mode="ai"
-              role="radio" aria-checked="false">AI Discovery</button>
-    </div>
-  </div>
-
-  <!-- ── AI Search: query entry panel (shown in AI mode before search) ── -->
-  <div class="ai-query-panel" id="aiQueryPanel" style="display:none">
-    <label class="ai-query-label" for="aiQueryInput">Ask a research question</label>
-    <div class="ai-query-input-row">
-      <textarea id="aiQueryInput" class="ai-query-textarea" rows="3"
-        placeholder='e.g. "How do stationary robots in airports affect passenger stress and wayfinding behavior?"'
-        maxlength="1000" spellcheck="true"></textarea>
-    </div>
-    <div class="ai-query-footer">
-      <div class="ai-recent-searches" id="aiRecentSearches"></div>
-      <button class="btn-primary ai-submit-btn" id="aiSearchBtn" disabled>Search with AI →</button>
-    </div>
+    <!-- Recent AI searches dropdown (shown on focus when history exists) -->
+    <div class="ai-recent-searches" id="aiRecentSearches" style="display:none"></div>
+    <!-- Context hint: shows active keywords being sent as context -->
     <div class="ai-context-hint" id="aiContextHint"></div>
   </div>
+
+  <!-- ── Active keyword tags shown in feed view ── -->
+  <div class="active-keywords-bar" id="activeKeywordsBar"></div>
 
   <!-- ── AI Search: loading / pipeline steps (shown while Claude is working) ── -->
   <div class="ai-loading-panel" id="aiLoadingPanel" style="display:none">

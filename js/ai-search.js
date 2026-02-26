@@ -1,86 +1,20 @@
 // -- ai-search.js --
-// Claude AI semantic search (Discovery mode): query expansion, S2 fetch, ranking.
-// Functions: initModeToggle, switchMode, initAiQueryPanel, renderRecentSearches,
+// AI semantic search (unified bar): query expansion, S2 fetch, re-ranking.
+// Functions: initAiSearchBtn, renderRecentSearches,
 //            saveRecentSearch, removeRecentSearch, renderKeywordContextHint,
 //            runAiSearch, cancelAiSearch, clearAiResults, setPipelineStep,
 //            renderMixedFeed, showSummaryBar, toggleSummaryBar, toggleEditTerms,
 //            renderEditChips, rerunWithEditedTerms, saveAiTermsAsKeywords, showAiEmptyState
 // -----
 
-function initModeToggle() {
-  document.getElementById('modeBtnKeywords').addEventListener('click', () => switchMode('keywords'));
-  document.getElementById('modeBtnAi').addEventListener('click', () => switchMode('ai'));
-}
-
-function switchMode(mode) {
-  aiMode = (mode === 'ai');
-
-  // Update toggle button states
-  document.getElementById('modeBtnKeywords').classList.toggle('active', !aiMode);
-  document.getElementById('modeBtnAi').classList.toggle('active', aiMode);
-  document.getElementById('modeBtnKeywords').setAttribute('aria-checked', String(!aiMode));
-  document.getElementById('modeBtnAi').setAttribute('aria-checked', String(aiMode));
-
-  // Show / hide panels
-  const searchBar  = document.getElementById('searchBarContainer');
-  const filterPanel= document.getElementById('filterPanel');
-  const queryPanel = document.getElementById('aiQueryPanel');
-  const summaryBar = document.getElementById('aiSummaryBar');
-
-  if (!aiMode) {
-    // Returning to keyword mode
-    if (searchBar)   searchBar.style.display   = '';
-    if (filterPanel) filterPanel.style.display  = '';
-    if (queryPanel)  queryPanel.style.display   = 'none';
-    if (summaryBar)  summaryBar.style.display   = 'none';
-    document.getElementById('aiLoadingPanel').style.display = 'none';
-    // Restore keyword feed
-    applyAndRender();
-  } else {
-    // Entering AI Discovery mode
-    if (searchBar)   searchBar.style.display   = 'none';
-    if (filterPanel) filterPanel.style.display  = 'none';
-    if (queryPanel)  queryPanel.style.display   = aiPapers.length ? 'none' : '';
-    if (summaryBar)  summaryBar.style.display   = aiPapers.length ? ''     : 'none';
-    if (aiPapers.length) {
-      // AI results still in memory — re-show them
-      renderMixedFeed();
-    }
-    renderRecentSearches();
-    renderKeywordContextHint();
-  }
-}
-
 
 // ════════════════════════════════════════════════════════════
-//  AI SEARCH — QUERY PANEL
+//  AI SEARCH — UNIFIED INPUT WIRING
 // ════════════════════════════════════════════════════════════
 
-function initAiQueryPanel() {
-  const textarea  = document.getElementById('aiQueryInput');
-  const submitBtn = document.getElementById('aiSearchBtn');
-
-  // Enable submit only when textarea has content; auto-grow height
-  textarea.addEventListener('input', () => {
-    submitBtn.disabled = textarea.value.trim().length === 0;
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 240) + 'px';
-  });
-
-  // Button click
-  submitBtn.addEventListener('click', () => {
-    const q = textarea.value.trim();
-    if (q) runAiSearch(q);
-  });
-
-  // Enter submits (Shift+Enter inserts newline)
-  textarea.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (!submitBtn.disabled) runAiSearch(textarea.value.trim());
-    }
-  });
-
+function initAiSearchBtn() {
+  // The aiSearchBtn click + searchInput keydown are wired in app.js bindEvents().
+  // This function wires the remaining AI panel controls.
   document.getElementById('aiCancelBtn').addEventListener('click', cancelAiSearch);
   document.getElementById('aiClearBtn').addEventListener('click', clearAiResults);
   document.getElementById('aiSummaryHeader').addEventListener('click', toggleSummaryBar);
@@ -90,13 +24,37 @@ function initAiQueryPanel() {
   });
   document.getElementById('aiSaveKwBtn').addEventListener('click', saveAiTermsAsKeywords);
   document.getElementById('aiRerunBtn').addEventListener('click', rerunWithEditedTerms);
+
+  // Show recent searches dropdown on input focus (when history exists)
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.addEventListener('focus', () => {
+      renderRecentSearches();
+      const container = document.getElementById('aiRecentSearches');
+      if (container && container.innerHTML.trim()) container.style.display = '';
+    });
+    // Hide dropdown on blur (small delay so click on item fires first)
+    searchInput.addEventListener('blur', () => {
+      setTimeout(() => {
+        const container = document.getElementById('aiRecentSearches');
+        if (container) container.style.display = 'none';
+      }, 200);
+    });
+  }
+
+  // Also render context hint on init
+  renderKeywordContextHint();
 }
 
 function renderRecentSearches() {
   const recent    = JSON.parse(localStorage.getItem(AI_RECENT_KEY) || '[]');
   const container = document.getElementById('aiRecentSearches');
   if (!container) return;
-  if (!recent.length) { container.innerHTML = ''; return; }
+  if (!recent.length) {
+    container.innerHTML = '';
+    container.style.display = 'none';
+    return;
+  }
 
   container.innerHTML = recent.map((q, i) => `
     <div class="ai-recent-item" data-idx="${i}">
@@ -111,10 +69,14 @@ function renderRecentSearches() {
       if (e.target.classList.contains('ai-recent-remove')) {
         removeRecentSearch(+e.target.dataset.idx);
       } else {
-        const input = document.getElementById('aiQueryInput');
-        input.value = recent[+el.dataset.idx];
-        document.getElementById('aiSearchBtn').disabled = false;
-        input.focus();
+        // Populate the unified search input and trigger AI search
+        const input = document.getElementById('searchInput');
+        if (input) {
+          input.value = recent[+el.dataset.idx];
+          input.dispatchEvent(new Event('input')); // update clear/AI button visibility
+        }
+        container.style.display = 'none';
+        runAiSearch(recent[+el.dataset.idx]);
       }
     });
   });
@@ -157,9 +119,9 @@ async function runAiSearch(query) {
   saveRecentSearch(query);
 
   // Transition to loading view
-  document.getElementById('aiQueryPanel').style.display    = 'none';
   document.getElementById('aiLoadingPanel').style.display  = '';
   document.getElementById('aiSummaryBar').style.display    = 'none';
+  document.getElementById('aiRecentSearches').style.display = 'none';
   document.getElementById('aiQueryPreview').textContent    =
     `"${query.slice(0, 80)}${query.length > 80 ? '…' : ''}"`;
 
@@ -172,7 +134,7 @@ async function runAiSearch(query) {
   const { signal } = aiAbortCtrl;
 
   try {
-    // ── Step 1 + 2: Claude query expansion ──────────────────
+    // ── Step 1 + 2: AI query expansion ──────────────────────
     const expandRes = await fetch(AI_CLAUDE_BASE, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -218,7 +180,7 @@ async function runAiSearch(query) {
       return;
     }
 
-    // ── Step 4: Claude re-ranking + explanations ─────────────
+    // ── Step 4: AI re-ranking + explanations ─────────────────
     setPipelineStep(4, 'active');
 
     const top20 = candidates.slice(0, 20).map(p => ({
@@ -268,12 +230,10 @@ async function runAiSearch(query) {
 
   } catch (err) {
     if (err.name === 'AbortError') {
-      // User cancelled — return to query panel with text preserved
-      document.getElementById('aiQueryPanel').style.display = '';
+      // User cancelled — input still has the query text, just hide loading
     } else {
       console.error('[AI Search] Error:', err);
       setStatus('AI search failed: ' + err.message, true);
-      document.getElementById('aiQueryPanel').style.display = '';
     }
   } finally {
     aiLoading = false;
@@ -285,7 +245,7 @@ function cancelAiSearch() {
   if (aiAbortCtrl) aiAbortCtrl.abort();
   aiLoading = false;
   document.getElementById('aiLoadingPanel').style.display = 'none';
-  document.getElementById('aiQueryPanel').style.display   = '';
+  // Leave search input as-is so user can see / edit the query
 }
 
 function clearAiResults() {
@@ -293,7 +253,10 @@ function clearAiResults() {
   aiQuery     = '';
   aiSummary   = null;
   aiEditTerms = [];
-  switchMode('keywords');
+  // Hide AI UI and restore keyword feed
+  document.getElementById('aiSummaryBar').style.display   = 'none';
+  document.getElementById('aiLoadingPanel').style.display  = 'none';
+  applyAndRender();
 }
 
 function setPipelineStep(stepNum, state) {
@@ -365,9 +328,8 @@ function showSummaryBar() {
   const bar = document.getElementById('aiSummaryBar');
   if (bar) bar.style.display = '';
 
-  // Hide loading, hide query panel
+  // Hide loading panel
   document.getElementById('aiLoadingPanel').style.display = 'none';
-  document.getElementById('aiQueryPanel').style.display   = 'none';
 
   // Render the mixed feed
   renderMixedFeed();
@@ -492,7 +454,6 @@ function saveAiTermsAsKeywords() {
 
 function showAiEmptyState(suggestions) {
   document.getElementById('aiLoadingPanel').style.display = 'none';
-  document.getElementById('aiQueryPanel').style.display   = '';
 
   const searchedTerms = (aiSummary?.searchTerms || [])
     .map(t => `<span class="ai-term-chip">${esc(t)}</span>`).join(' ');
@@ -518,19 +479,25 @@ function showAiEmptyState(suggestions) {
       </p>
       ${suggestionsHtml}
       <p style="margin-top:20px;font-size:13px;color:var(--text-muted);">
-        Or <button class="btn-text" onclick="switchMode('keywords')">return to keyword feed</button>
+        Or <button class="btn-text" id="aiReturnToKwBtn">return to keyword feed</button>
       </p>
     </div>`;
 
-  // Wire suggestion buttons — click populates textarea and auto-submits
+  // Wire suggestion buttons — populate unified input and auto-submit
   feed.querySelectorAll('.ai-suggestion-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const q = btn.dataset.query;
-      const textarea = document.getElementById('aiQueryInput');
-      if (textarea) textarea.value = q;
+      const q      = btn.dataset.query;
+      const input  = document.getElementById('searchInput');
+      if (input) {
+        input.value = q;
+        input.dispatchEvent(new Event('input')); // refresh AI button state
+      }
       runAiSearch(q);
     });
   });
+
+  // Return to keyword feed: clear AI state and restore normal feed
+  document.getElementById('aiReturnToKwBtn')?.addEventListener('click', clearAiResults);
 }
 
 

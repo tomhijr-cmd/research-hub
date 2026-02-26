@@ -109,28 +109,56 @@ async function fetchPapers() {
 // ════════════════════════════════════════════════════════════
 
 function handleSearchInput(e) {
-  const val = e.target.value;
+  const val      = e.target.value;
   const clearBtn = document.getElementById('searchClearBtn');
-  clearBtn.style.display = val ? 'block' : 'none';
+  const aiBtn    = document.getElementById('aiSearchBtn');
 
-  // Debounce: wait 300ms after typing stops before filtering
+  // Show/hide clear button
+  clearBtn.style.display = val.trim() ? 'block' : 'none';
+
+  // Show AI button only when there is text; style based on intent
+  if (val.trim()) {
+    aiBtn.style.display = '';
+    if (looksLikeQuestion(val)) {
+      aiBtn.classList.remove('muted');
+      aiBtn.textContent = 'Search with AI →';
+    } else {
+      aiBtn.classList.add('muted');
+      aiBtn.textContent = 'AI →';
+    }
+  } else {
+    aiBtn.style.display = 'none';
+  }
+
+  // If AI results are currently showing and the user edits the input, clear them
+  if (aiPapers.length && val !== aiQuery) {
+    clearAiResults();
+  }
+
+  // Debounce: wait 300ms after typing stops before live-filtering keyword feed
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
     searchQuery = val;
-    applyAndRender();
+    if (!aiPapers.length) applyAndRender(); // only live-filter in keyword mode
   }, 300);
 }
 
 function clearSearch() {
   searchQuery = '';
-  const input = document.getElementById('searchInput');
-  if (input) input.value = '';
+  const input  = document.getElementById('searchInput');
+  const aiBtn  = document.getElementById('aiSearchBtn');
+  if (input)  input.value = '';
   document.getElementById('searchClearBtn').style.display = 'none';
+  if (aiBtn)  aiBtn.style.display = 'none';
+  // If AI results were showing, clear them and restore keyword feed
+  if (aiPapers.length) {
+    aiPapers    = [];
+    aiQuery     = '';
+    aiSummary   = null;
+    aiEditTerms = [];
+    document.getElementById('aiSummaryBar').style.display  = 'none';
+    document.getElementById('aiLoadingPanel').style.display = 'none';
+  }
   applyAndRender();
 }
-
-
-// ════════════════════════════════════════════════════════════
-//  AI SEARCH — MODE TOGGLE
-// ════════════════════════════════════════════════════════════
 
