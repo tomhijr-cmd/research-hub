@@ -35,10 +35,9 @@ CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'paper_cac
 CACHE_TTL  = 60 * 60 * 24   # 24 hours in seconds
 API_TIMEOUT = 5              # seconds — short so a hung fetch never blocks the server
 
-CLAUDE_API_URL    = 'https://api.anthropic.com/v1/messages'
-CLAUDE_MODEL      = 'claude-sonnet-4-5'
-CLAUDE_TIMEOUT    = 35                                    # seconds — ranking 20 papers can take a moment
-ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')  # set before running: set ANTHROPIC_API_KEY=sk-ant-...
+GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
+GEMINI_TIMEOUT = 35                                   # seconds — ranking 20 papers can take a moment
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')  # set before running: set GEMINI_API_KEY=AIza...
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -204,19 +203,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def proxy_claude(self):
         """
-        Proxy POST /api/claude → Anthropic Claude API.
+        Proxy POST /api/claude → Google Gemini API.
 
         Mirrors api/claude.js (the Vercel serverless function) so the same
         index.html works locally without Vercel dev tools.
 
         Request body: { type: 'expand'|'rank', query, keywords?, papers? }
-        Response: JSON from Claude (searchTerms/interpretation/suggestions OR ranked array)
+        Response: JSON from Gemini (searchTerms/interpretation/suggestions OR ranked array)
         """
         import re
 
-        if not ANTHROPIC_API_KEY:
+        if not GEMINI_API_KEY:
             self._send_json(500, json.dumps({
-                'error': 'ANTHROPIC_API_KEY not set. Run: set ANTHROPIC_API_KEY=sk-ant-... before starting server.'
+                'error': 'GEMINI_API_KEY not set. Run: set GEMINI_API_KEY=AIza... before starting server.'
             }))
             return
 
@@ -284,47 +283,54 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             }))
             return
 
-        # ── Call Claude API ──────────────────────────────────────────────────────
+        # ── Call Gemini API ──────────────────────────────────────────────────────
 
-        claude_payload = json.dumps({
-            'model':      CLAUDE_MODEL,
-            'max_tokens': 2048,
-            'system':     system_prompt,
-            'messages':   [{'role': 'user', 'content': user_message}],
+        gemini_payload = json.dumps({
+            'contents':          [{'parts': [{'text': user_message}]}],
+            'systemInstruction': {'parts': [{'text': system_prompt}]},
+            'generationConfig':  {'temperature': 0.3},
         }).encode('utf-8')
 
         try:
-            claude_req = urllib.request.Request(
-                CLAUDE_API_URL,
-                data=claude_payload,
-                headers={
-                    'Content-Type':      'application/json',
-                    'x-api-key':         ANTHROPIC_API_KEY,
-                    'anthropic-version': '2023-06-01',
-                },
+            gemini_req = urllib.request.Request(
+                f'{GEMINI_API_URL}?key={GEMINI_API_KEY}',
+                data=gemini_payload,
+                headers={'Content-Type': 'application/json'},
                 method='POST',
             )
-            with urllib.request.urlopen(claude_req, timeout=CLAUDE_TIMEOUT) as resp:
+            with urllib.request.urlopen(gemini_req, timeout=GEMINI_TIMEOUT) as resp:
                 raw = resp.read().decode('utf-8', errors='replace')
 
             response_data = json.loads(raw)
-            text = response_data.get('content', [{}])[0].get('text', '')
 
-            # Extract JSON — Claude sometimes wraps it in markdown code fences
+            # Check for Gemini-level error object in a 200 response
+            if 'error' in response_data:
+                err_msg = response_data['error'].get('message', 'Gemini API error')
+                print(f'[gemini] API error: {err_msg}')
+                self._send_json(500, json.dumps({'error': err_msg}))
+                return
+
+            text = (response_data
+                    .get('candidates', [{}])[0]
+                    .get('content', {})
+                    .get('parts', [{}])[0]
+                    .get('text', ''))
+
+            # Extract JSON — Gemini sometimes wraps it in markdown code fences
             json_match = re.search(r'\[[\s\S]*?\]|\{[\s\S]*?\}', text)
             if not json_match:
-                print(f'[claude] No JSON in response. Raw text: {text[:300]}')
-                self._send_json(500, json.dumps({'error': 'Claude returned unexpected format'}))
+                print(f'[gemini] No JSON in response. Raw text: {text[:300]}')
+                self._send_json(500, json.dumps({'error': 'AI returned unexpected format'}))
                 return
 
             self._send_json(200, json_match.group(0))
 
         except urllib.error.HTTPError as e:
             body = e.read().decode('utf-8', errors='replace')
-            print(f'[claude] HTTPError {e.code}: {body[:200]}')
+            print(f'[gemini] HTTPError {e.code}: {body[:200]}')
             self._send_json(e.code, body)
         except Exception as e:
-            print(f'[claude] Error: {e}')
+            print(f'[gemini] Error: {e}')
             self._send_json(502, json.dumps({'error': str(e)}))
 
 

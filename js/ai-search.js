@@ -181,7 +181,7 @@ async function runAiSearch(query) {
     });
     if (!expandRes.ok) {
       const err = await expandRes.json().catch(() => ({}));
-      throw new Error(err.error || `Claude API error (${expandRes.status})`);
+      throw new Error(err.error || `AI search error (${expandRes.status})`);
     }
     const expandData = await expandRes.json();
     // expandData = { searchTerms[], interpretation, suggestions[] }
@@ -237,7 +237,7 @@ async function runAiSearch(query) {
     });
     if (!rankRes.ok) {
       const err = await rankRes.json().catch(() => ({}));
-      throw new Error(err.error || `Claude ranking error (${rankRes.status})`);
+      throw new Error(err.error || `AI ranking error (${rankRes.status})`);
     }
     const rankData = await rankRes.json();
     // rankData = [{ paperId, score, explanation }]
@@ -514,7 +514,7 @@ function showAiEmptyState(suggestions) {
     <div class="ai-empty-state">
       <h3>No relevant papers found for this query.</h3>
       <p style="color:var(--text-muted);font-size:14px;margin-top:6px;">
-        Claude searched for: ${searchedTerms}
+        AI searched for: ${searchedTerms}
       </p>
       ${suggestionsHtml}
       <p style="margin-top:20px;font-size:13px;color:var(--text-muted);">
