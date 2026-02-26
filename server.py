@@ -35,9 +35,25 @@ CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'paper_cac
 CACHE_TTL  = 60 * 60 * 24   # 24 hours in seconds
 API_TIMEOUT = 5              # seconds — short so a hung fetch never blocks the server
 
-GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
+GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 GEMINI_TIMEOUT = 35                                   # seconds — ranking 20 papers can take a moment
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')  # set before running: set GEMINI_API_KEY=AIza...
+def _read_gemini_key():
+    """Read GEMINI_API_KEY from os.environ first, then fall back to Windows
+    User-level registry (so the key works even when the server is launched
+    from a process that didn't inherit the env var, e.g. Claude Code terminal)."""
+    key = os.environ.get('GEMINI_API_KEY', '')
+    if key:
+        return key
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                            r'Environment', 0, winreg.KEY_READ) as reg:
+            value, _ = winreg.QueryValueEx(reg, 'GEMINI_API_KEY')
+            return value or ''
+    except Exception:
+        return ''
+
+GEMINI_API_KEY = _read_gemini_key()
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 

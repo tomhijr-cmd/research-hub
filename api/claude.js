@@ -16,7 +16,7 @@
 
 const https = require('https');
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const TIMEOUT_MS = 30000; // 30 seconds — ranking 20 papers can take a moment
 
 module.exports = async function handler(req, res) {
