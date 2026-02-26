@@ -1781,6 +1781,213 @@ test('Signal Weights', 'removed = -5, cancels liked+saved combined', () => {
 });
 
 
+// ════════════════════════════════════════════════════════════
+//  SECTION — looksLikeQuestion (unified search intent detection)
+//  Mirrors the function in js/app.js exactly.
+//  If you update looksLikeQuestion() there, update it here too.
+// ════════════════════════════════════════════════════════════
+
+function looksLikeQuestion(text) {
+  const t = text.trim();
+  if (t.length < 15) return false;
+  if (t.includes('?')) return true;
+  const words = t.split(/\s+/);
+  if (words.length >= 5) return true;
+  const starters = ['how','why','what','when','where','which','does','do',
+                    'can','is','are','will','would','should'];
+  return starters.includes(words[0].toLowerCase());
+}
+
+test('looksLikeQuestion', 'short keyword → false', () => {
+  assert(!looksLikeQuestion('priming'), 'single word should not be a question');
+});
+
+test('looksLikeQuestion', 'two-word keyword → false (under 15 chars)', () => {
+  assert(!looksLikeQuestion('social robots'), 'two short words should not be a question');
+});
+
+test('looksLikeQuestion', 'explicit question mark → true', () => {
+  // Must be ≥15 chars for the ? check to be reached ("social robots?" = 14, too short)
+  assert(looksLikeQuestion('social robotics?'), 'question mark with ≥15 chars should return true');
+});
+
+test('looksLikeQuestion', 'long question mark sentence → true', () => {
+  assert(looksLikeQuestion('How do robots affect mood?'), 'question mark sentence should be true');
+});
+
+test('looksLikeQuestion', '5+ words without question mark → true', () => {
+  assert(looksLikeQuestion('carry-over effects in public social robots'),
+    '5-word phrase should be treated as question');
+});
+
+test('looksLikeQuestion', '4 words without question mark → false', () => {
+  assert(!looksLikeQuestion('social robot priming effect'),
+    '4 words is still keyword-like');
+});
+
+test('looksLikeQuestion', 'starts with "how" → true', () => {
+  assert(looksLikeQuestion('how robots affect stress'), '"how" starter should be true');
+});
+
+test('looksLikeQuestion', 'starts with "why" → true', () => {
+  assert(looksLikeQuestion('why do people like robots'), '"why" starter should be true');
+});
+
+test('looksLikeQuestion', 'starts with "what" → true', () => {
+  assert(looksLikeQuestion('what is emotional contagion'), '"what" starter should be true');
+});
+
+test('looksLikeQuestion', 'starts with "does" → true', () => {
+  assert(looksLikeQuestion('does priming affect HRI'), '"does" starter should be true');
+});
+
+test('looksLikeQuestion', 'starts with "can" → true', () => {
+  assert(looksLikeQuestion('can robots prime emotions'), '"can" starter should be true');
+});
+
+test('looksLikeQuestion', 'starts with "will" → true', () => {
+  assert(looksLikeQuestion('will robots replace humans'), '"will" starter should be true');
+});
+
+test('looksLikeQuestion', 'starts with "should" → true', () => {
+  assert(looksLikeQuestion('should robots express emotions'), '"should" starter should be true');
+});
+
+test('looksLikeQuestion', 'empty string → false', () => {
+  assert(!looksLikeQuestion(''), 'empty string should not be a question');
+});
+
+test('looksLikeQuestion', 'whitespace only → false', () => {
+  assert(!looksLikeQuestion('   '), 'whitespace-only should not be a question');
+});
+
+test('looksLikeQuestion', 'very long keyword (≥15 chars but 1 word) → false', () => {
+  // 15+ chars but single word — not question-like
+  assert(!looksLikeQuestion('humanrobotinteraction'), 'single long word is not a question');
+});
+
+test('looksLikeQuestion', 'phrase exactly 14 chars → false (below threshold)', () => {
+  // "priming robots" = 14 chars (no question mark, <5 words, no question starter)
+  assert(!looksLikeQuestion('priming robots'), '14-char phrase should not be a question');
+});
+
+test('looksLikeQuestion', 'phrase exactly 15 chars, 2 words, no starter → false', () => {
+  // "social modeling" = 15 chars, 2 words, no ? — word count threshold is 5
+  assert(!looksLikeQuestion('social modeling'), '15-char 2-word phrase, no starter, not a question');
+});
+
+test('looksLikeQuestion', 'question-starter case-insensitive → true', () => {
+  assert(looksLikeQuestion('HOW robots affect us'), 'uppercase HOW should still be detected');
+});
+
+
+// ════════════════════════════════════════════════════════════
+//  SECTION — Unified Search Bar (AI button state logic)
+//  Tests the button-state rules derived from handleSearchInput.
+//  Pure logic — no DOM needed.
+// ════════════════════════════════════════════════════════════
+
+// Mirrors the AI-button decision logic from handleSearchInput() in api.js
+function getAiBtnState(val) {
+  if (!val.trim()) return 'hidden';
+  if (looksLikeQuestion(val)) return 'highlighted'; // accent, "Search with AI →"
+  return 'muted';                                    // grey, "AI →"
+}
+
+test('Unified Search Bar', 'empty input → AI button hidden', () => {
+  assertEqual(getAiBtnState(''), 'hidden', 'empty value should hide AI button');
+});
+
+test('Unified Search Bar', 'whitespace only → AI button hidden', () => {
+  assertEqual(getAiBtnState('   '), 'hidden', 'whitespace should hide AI button');
+});
+
+test('Unified Search Bar', 'short keyword → AI button muted', () => {
+  assertEqual(getAiBtnState('priming'), 'muted', 'short keyword should show muted AI button');
+});
+
+test('Unified Search Bar', 'two-word keyword → AI button muted', () => {
+  assertEqual(getAiBtnState('social robots'), 'muted', 'keyword pair should show muted AI button');
+});
+
+test('Unified Search Bar', 'question with ? → AI button highlighted', () => {
+  assertEqual(getAiBtnState('How do robots affect emotions?'), 'highlighted',
+    'explicit question should highlight AI button');
+});
+
+test('Unified Search Bar', '5+ word phrase → AI button highlighted', () => {
+  assertEqual(getAiBtnState('carry-over effects in HRI studies'), 'highlighted',
+    '5-word phrase should highlight AI button');
+});
+
+test('Unified Search Bar', 'question-word starter → AI button highlighted', () => {
+  assertEqual(getAiBtnState('what role does priming play'), 'highlighted',
+    '"what" starter should highlight AI button');
+});
+
+test('Unified Search Bar', '4-word non-question phrase → AI button muted', () => {
+  assertEqual(getAiBtnState('robot emotion carry-over'), 'muted',
+    'short non-question phrase should stay muted');
+});
+
+// ── Clear search: AI papers state reset ─────────────────────
+// Mirrors the guard logic in clearSearch() in api.js
+
+function simulateClearSearch(hadAiPapers) {
+  // Returns the resulting state object after clearSearch logic runs
+  let aiPapers    = hadAiPapers ? [{ paperId: 'x' }] : [];
+  let aiQuery     = hadAiPapers ? 'test query' : '';
+  let aiSummary   = hadAiPapers ? { interpretation: 'test' } : null;
+  let aiEditTerms = hadAiPapers ? ['term1'] : [];
+
+  // Simulate clearSearch logic
+  if (aiPapers.length) {
+    aiPapers    = [];
+    aiQuery     = '';
+    aiSummary   = null;
+    aiEditTerms = [];
+  }
+  return { aiPapers, aiQuery, aiSummary, aiEditTerms };
+}
+
+test('Unified Search Bar', 'clearSearch resets AI state when AI results were showing', () => {
+  const state = simulateClearSearch(true);
+  assertLength(state.aiPapers, 0, 'aiPapers should be empty after clear');
+  assertEqual(state.aiQuery, '', 'aiQuery should be cleared');
+  assert(state.aiSummary === null, 'aiSummary should be null');
+  assertLength(state.aiEditTerms, 0, 'aiEditTerms should be empty');
+});
+
+test('Unified Search Bar', 'clearSearch leaves AI state alone when no AI results', () => {
+  const state = simulateClearSearch(false);
+  assertLength(state.aiPapers, 0, 'aiPapers already empty, stays empty');
+  assertEqual(state.aiQuery, '', 'aiQuery already empty');
+  assert(state.aiSummary === null, 'aiSummary already null');
+});
+
+// ── handleSearchInput: AI-clear-on-edit guard ────────────────
+
+function simulateSearchEdit(currentInput, existingAiQuery, hasAiPapers) {
+  // Returns whether AI results should be cleared (mirrors the guard in handleSearchInput)
+  return hasAiPapers && currentInput !== existingAiQuery;
+}
+
+test('Unified Search Bar', 'editing input while AI results show → clears AI results', () => {
+  assert(simulateSearchEdit('new text', 'old query', true),
+    'should clear AI when input differs from aiQuery');
+});
+
+test('Unified Search Bar', 'input unchanged from aiQuery → does not clear AI results', () => {
+  assert(!simulateSearchEdit('same query', 'same query', true),
+    'should not clear AI when input matches aiQuery');
+});
+
+test('Unified Search Bar', 'no AI results → editing input never triggers AI clear', () => {
+  assert(!simulateSearchEdit('anything', 'old query', false),
+    'should not clear AI when aiPapers is empty');
+});
+
+
 // ── Wire up the run button ───────────────────────────────────
 document.getElementById('runBtn').addEventListener('click', runAll);
 
