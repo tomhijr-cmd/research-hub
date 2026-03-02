@@ -1988,6 +1988,62 @@ test('Unified Search Bar', 'no AI results → editing input never triggers AI cl
 });
 
 
+// ════════════════════════════════════════════════════════════
+//  SECTION — Active Topics Bar (merged bar label + Manage button)
+//  Mirrors the renderActiveKeywordsBar() logic in js/app.js.
+//  If you update that function, update this section too.
+// ════════════════════════════════════════════════════════════
+
+function buildTopicsBarHtml(activeKws) {
+  // Mirrors renderActiveKeywordsBar() without DOM wiring
+  function escT(str) {
+    return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  if (activeKws.length === 0) {
+    return '<span class="bar-label">No active topics — <button class="bar-manage-btn" id="barManageTopicsBtn">add some</button></span>';
+  }
+  return '<span class="bar-label">Your topics (feed + AI):</span>' +
+    activeKws.map(k => `<span class="active-kw-tag">${escT(k)}</span>`).join('') +
+    '<button class="bar-manage-btn" id="barManageTopicsBtn" aria-label="Manage topics">✎ Manage</button>';
+}
+
+test('Active Topics Bar', 'label says "Your topics (feed + AI):" when topics exist', () => {
+  const html = buildTopicsBarHtml(['social robots', 'HRI']);
+  assert(html.includes('Your topics (feed + AI):'), 'bar label should reference both roles');
+});
+
+test('Active Topics Bar', 'label does NOT say "Searching:" (old label removed)', () => {
+  const html = buildTopicsBarHtml(['social robots']);
+  assert(!html.includes('Searching:'), '"Searching:" label should be gone');
+});
+
+test('Active Topics Bar', 'all active topics appear as chips', () => {
+  const html = buildTopicsBarHtml(['social robots', 'emotional contagion', 'priming']);
+  assert(html.includes('social robots'), 'first topic should be in bar');
+  assert(html.includes('emotional contagion'), 'second topic should be in bar');
+  assert(html.includes('priming'), 'third topic should be in bar');
+});
+
+test('Active Topics Bar', '✎ Manage button present when topics exist', () => {
+  const html = buildTopicsBarHtml(['social robots']);
+  assert(html.includes('barManageTopicsBtn'), 'Manage button should be present');
+  assert(html.includes('✎ Manage'), 'Manage button should show pencil icon');
+});
+
+test('Active Topics Bar', 'empty state shows "add some" shortcut instead of chip list', () => {
+  const html = buildTopicsBarHtml([]);
+  assert(html.includes('No active topics'), 'empty state label should be present');
+  assert(html.includes('add some'), '"add some" shortcut should appear in empty state');
+  assert(!html.includes('Your topics (feed + AI):'), 'full label should not appear in empty state');
+});
+
+test('Active Topics Bar', 'empty state still has Manage button id for event wiring', () => {
+  const html = buildTopicsBarHtml([]);
+  assert(html.includes('barManageTopicsBtn'), 'Manage button id must be present for event wiring');
+});
+
+
 // ── Wire up the run button ───────────────────────────────────
 document.getElementById('runBtn').addEventListener('click', runAll);
 

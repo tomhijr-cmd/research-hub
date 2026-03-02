@@ -644,6 +644,15 @@
       margin-right: 4px;
     }
 
+    /* "✎ Manage" inline shortcut at the end of the topics bar */
+    .bar-manage-btn {
+      background: none; border: none; cursor: pointer;
+      font-size: 0.72rem; color: var(--text-muted);
+      font-family: inherit; padding: 0 0 0 6px;
+      text-decoration: underline; text-underline-offset: 2px;
+    }
+    .bar-manage-btn:hover { color: var(--accent); }
+
     .active-kw-tag {
       background: var(--accent-light);
       color: var(--accent);

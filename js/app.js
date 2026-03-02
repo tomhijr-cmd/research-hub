@@ -1134,13 +1134,19 @@ function renderActiveKeywordsBar() {
   const active = activeKeywords();
 
   if (active.length === 0) {
-    bar.innerHTML = '<span class="bar-label">No active keywords</span>';
-    return;
+    bar.innerHTML = '<span class="bar-label">No active topics — <button class="bar-manage-btn" id="barManageTopicsBtn">add some</button></span>';
+  } else {
+    bar.innerHTML =
+      '<span class="bar-label">Your topics (feed + AI):</span>' +
+      active.map(k => `<span class="active-kw-tag">${esc(k)}</span>`).join('') +
+      '<button class="bar-manage-btn" id="barManageTopicsBtn" aria-label="Manage topics">✎ Manage</button>';
   }
 
-  bar.innerHTML =
-    '<span class="bar-label">Searching:</span>' +
-    active.map(k => `<span class="active-kw-tag">${esc(k)}</span>`).join('');
+  // Wire the Manage button to open the My Topics panel
+  document.getElementById('barManageTopicsBtn')?.addEventListener('click', () => {
+    openPanel('keywordsPanel');
+    renderKeywordChips();
+  });
 }
 
 

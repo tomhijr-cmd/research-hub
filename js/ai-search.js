@@ -96,15 +96,8 @@ function removeRecentSearch(idx) {
 }
 
 function renderKeywordContextHint() {
-  const hint = document.getElementById('aiContextHint');
-  if (!hint) return;
-  const kws  = activeKeywords();
-  if (!kws.length) { hint.innerHTML = ''; return; }
-  const shown = kws.slice(0, 6);
-  const more  = kws.length - shown.length;
-  hint.innerHTML = 'Your keywords (sent as context): ' +
-    shown.map(k => `<span class="matched-kw-tag">${esc(k)}</span>`).join(' ') +
-    (more > 0 ? ` <span style="color:var(--text-muted)">+ ${more} more</span>` : '');
+  // No-op: keyword context is now shown in the active topics bar (#activeKeywordsBar).
+  // Function kept to avoid errors from existing call sites (initAiSearchBtn).
 }
 
 
